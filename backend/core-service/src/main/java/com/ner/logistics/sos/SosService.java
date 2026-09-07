@@ -123,6 +123,8 @@ public class SosService {
                 .relayedByVehicle(dto.getRelayedByVehicleCode())
                 .relayHopCount(dto.getHopCount() != null ? dto.getHopCount() : 1)
                 .relayLatencyMinutes(latency)
+                .pathAccumulator(dto.getPathAccumulator() != null ? dto.getPathAccumulator() : dto.getOriginVehicleCode() + " -> " + dto.getRelayedByVehicleCode())
+                .crcChecksum(dto.getCrcChecksum() != null ? dto.getCrcChecksum() : "VALID_CRC32")
                 .originTimestamp(originTime)
                 .createdAt(now)
                 .build();

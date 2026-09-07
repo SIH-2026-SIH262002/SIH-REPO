@@ -30,10 +30,10 @@ export const SimulationController: React.FC<SimulationControllerProps> = ({
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div className="flex items-center space-x-2">
           <div className="px-2 py-1 rounded bg-teal-50 text-teal-700 border border-teal-200 text-[10px] font-bold tracking-wider uppercase">
-            OPERATIONAL SIMULATION
+            OPERATOR TRAINING SIMULATOR
           </div>
           <h2 className="text-sm font-extrabold text-slate-900 uppercase tracking-wide">
-            ▶ Disruption & AI Rerouting Simulation Engine
+            ▶ Emergency Disruption & AI Advisory Training Module
           </h2>
         </div>
 

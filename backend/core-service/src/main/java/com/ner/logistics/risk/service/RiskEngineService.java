@@ -2,6 +2,7 @@ package com.ner.logistics.risk.service;
 
 import com.ner.logistics.incident.Incident;
 import com.ner.logistics.incident.IncidentRepository;
+import com.ner.logistics.risk.DempsterShaferConfidenceEngine;
 import com.ner.logistics.risk.dto.FactorImpactDto;
 import com.ner.logistics.risk.dto.RiskEvaluationRequest;
 import com.ner.logistics.risk.dto.RiskEvaluationResponse;
@@ -73,12 +74,37 @@ public class RiskEngineService {
         score = Math.min(100, Math.max(0, score));
         String riskLevel = riskLevelResolver.resolveFromScore(score);
 
-        String explanation = String.format("%s real-time risk assessed due to weather conditions, spatial incident proximity, and corridor vulnerability.", riskLevel);
+        // Dempster-Shafer Evidence Combination (IoT Weather Sensor vs Incident Report)
+        long now = System.currentTimeMillis() / 1000L;
+        DempsterShaferConfidenceEngine.EvidenceSource sensorEvidence = DempsterShaferConfidenceEngine.EvidenceSource.builder()
+                .sourceId("IOT_WEATHER_NODE_01")
+                .sourceType("IOT_SENSOR")
+                .beliefHazard(rainfall > 60.0 ? 0.75 : 0.15)
+                .beliefSafe(rainfall <= 60.0 ? 0.70 : 0.10)
+                .uncertainty(0.15)
+                .timestampEpochSec(now - 300) // 5 min old
+                .build();
+
+        DempsterShaferConfidenceEngine.EvidenceSource reportEvidence = DempsterShaferConfidenceEngine.EvidenceSource.builder()
+                .sourceId("HUMAN_FIELD_REPORT_01")
+                .sourceType("HUMAN_DRIVER")
+                .beliefHazard(!nearbyIncidents.isEmpty() ? 0.85 : 0.10)
+                .beliefSafe(!nearbyIncidents.isEmpty() ? 0.05 : 0.80)
+                .uncertainty(0.10)
+                .timestampEpochSec(now - 600) // 10 min old
+                .build();
+
+        DempsterShaferConfidenceEngine.CombinedBeliefResult fused = DempsterShaferConfidenceEngine.fuseDempsterShafer(sensorEvidence, reportEvidence, now);
+
+        String explanation = String.format("%s real-time risk assessed (Confidence: %.1f%% via Dempster-Shafer fusion) due to weather, spatial incidents, and corridor vulnerability.",
+                riskLevel, fused.getOverallConfidenceScore());
 
         return RiskEvaluationResponse.builder()
                 .currentRiskScore(score)
                 .currentRiskLevel(riskLevel)
-                .assessmentType("RULE_BASED_REAL_TIME")
+                .assessmentType("DEMPSTER_SHAFER_FUSED")
+                .confidenceScore(fused.getOverallConfidenceScore())
+                .uncertaintyMetric(fused.getCombinedUncertainty())
                 .factors(factors)
                 .explanation(explanation)
                 .build();

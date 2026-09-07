@@ -43,8 +43,8 @@ export const MOCK_VEHICLES: Vehicle[] = [
     destination: 'Silchar (Cachar)',
     eta: '4h 20m',
     location: {
-      lat: 25.4000,
-      lng: 92.7500,
+      lat: 25.1500,
+      lng: 92.7000,
       address: 'Haflong Corridor, Dima Hasao Sector',
       speedKmH: 22,
       lastUpdated: '1 min ago',
@@ -73,6 +73,7 @@ export const MOCK_VEHICLES: Vehicle[] = [
       lastUpdated: '3 mins ago',
     },
     currentRouteId: 'route-aizawl-silchar',
+    alternativeRouteAvailable: true,
   },
   {
     id: 'v-18',
@@ -117,8 +118,149 @@ export const MOCK_VEHICLES: Vehicle[] = [
       lastUpdated: '24 mins ago',
     },
     currentRouteId: 'route-dimapur-kohima',
+    alternativeRouteAvailable: true,
   },
 ];
+
+export interface VehicleRouteInfo {
+  originName: string;
+  originCoords: [number, number];
+  destinationName: string;
+  destinationCoords: [number, number];
+  primaryRouteName: string;
+  primaryCoords: [number, number][];
+  alternativeRouteName: string;
+  alternativeCoords: [number, number][];
+  totalDistanceKm: number;
+  remainingDistanceKm: number;
+  alternativeReason: string;
+}
+
+export const VEHICLE_ROUTES: Record<string, VehicleRouteInfo> = {
+  'NER-01': {
+    originName: 'Guwahati Freight Terminal',
+    originCoords: [26.1445, 91.7362],
+    destinationName: 'Tezpur Central Depot',
+    destinationCoords: [26.6338, 92.8000],
+    primaryRouteName: 'NH-27 Guwahati-Tezpur Expressway',
+    primaryCoords: [
+      [26.1445, 91.7362],
+      [26.1550, 92.2150],
+      [26.3500, 92.6800],
+      [26.6338, 92.8000],
+    ],
+    alternativeRouteName: 'SH-17 Mangaldoi-Dhekiajuli Bypass',
+    alternativeCoords: [
+      [26.1445, 91.7362],
+      [26.4350, 92.0370],
+      [26.7000, 92.4800],
+      [26.6338, 92.8000],
+    ],
+    totalDistanceKm: 178.0,
+    remainingDistanceKm: 72.0,
+    alternativeReason: 'Bypasses construction bottleneck at Jagiroad',
+  },
+  'NER-07': {
+    originName: 'Guwahati Freight Hub',
+    originCoords: [26.1445, 91.7362],
+    destinationName: 'Silchar Civil Hospital Depot',
+    destinationCoords: [24.8333, 92.7789],
+    primaryRouteName: 'NH-27 Guwahati-Silchar Highway',
+    primaryCoords: [
+      [26.1445, 91.7362],
+      [25.8000, 91.8000],
+      [25.5788, 91.8933],
+      [25.4500, 92.2000],
+      [25.1500, 92.7000],
+      [24.8333, 92.7789],
+    ],
+    alternativeRouteName: 'SH-51 Lumding-Silchar Bypass Pass',
+    alternativeCoords: [
+      [26.1445, 91.7362],
+      [26.3500, 92.2000],
+      [25.7500, 93.1600],
+      [25.3200, 93.1000],
+      [24.8333, 92.7789],
+    ],
+    totalDistanceKm: 315.0,
+    remainingDistanceKm: 142.5,
+    alternativeReason: '✨ AI RECOMMENDED: Avoids 400m earth slip blockage at Haflong Pass',
+  },
+  'NER-12': {
+    originName: 'Aizawl Central Hub (Mizoram)',
+    originCoords: [23.7271, 92.7176],
+    destinationName: 'Silchar Distribution Depot (Cachar)',
+    destinationCoords: [24.8333, 92.7789],
+    primaryRouteName: 'NH-306 Aizawl-Silchar Hill Highway',
+    primaryCoords: [
+      [23.7271, 92.7176],
+      [24.0500, 92.6500],
+      [24.2000, 92.7000],
+      [24.4900, 92.7500],
+      [24.8333, 92.7789],
+    ],
+    alternativeRouteName: 'SH-09 Mamit-Hailakandi Bypass Corridor',
+    alternativeCoords: [
+      [23.7271, 92.7176],
+      [23.9300, 92.4900],
+      [24.4000, 92.5500],
+      [24.6800, 92.5600],
+      [24.8333, 92.7789],
+    ],
+    totalDistanceKm: 184.0,
+    remainingDistanceKm: 96.0,
+    alternativeReason: '✨ AI RECOMMENDED: Avoids Vairengte hill slope subsidence and rockfall cut',
+  },
+  'NER-18': {
+    originName: 'Siliguri Logistics Freight Park',
+    originCoords: [26.7271, 88.3953],
+    destinationName: 'Gangtok Depot (Sikkim)',
+    destinationCoords: [27.3389, 88.6065],
+    primaryRouteName: 'NH-10 Siliguri-Gangtok Highway',
+    primaryCoords: [
+      [26.7271, 88.3953],
+      [26.8900, 88.4700],
+      [27.1000, 88.5000],
+      [27.1700, 88.5300],
+      [27.3389, 88.6065],
+    ],
+    alternativeRouteName: 'SH-12 Damdim-Lava Pass Detour',
+    alternativeCoords: [
+      [26.7271, 88.3953],
+      [26.8700, 88.6300],
+      [27.0800, 88.6600],
+      [27.1700, 88.5300],
+      [27.3389, 88.6065],
+    ],
+    totalDistanceKm: 114.0,
+    remainingDistanceKm: 42.0,
+    alternativeReason: 'Bypasses Teesta riverbank erosion risk zone',
+  },
+  'NER-21': {
+    originName: 'Dimapur Freight Yard (Nagaland)',
+    originCoords: [25.9060, 93.7270],
+    destinationName: 'Kohima Supply Depot',
+    destinationCoords: [25.6751, 94.1086],
+    primaryRouteName: 'NH-29 Dimapur-Kohima Highway',
+    primaryCoords: [
+      [25.9060, 93.7270],
+      [25.8200, 93.7800],
+      [25.7500, 93.9000],
+      [25.7000, 94.0200],
+      [25.6751, 94.1086],
+    ],
+    alternativeRouteName: 'SH-03 Peren-Khonoma Mountain Bypass',
+    alternativeCoords: [
+      [25.9060, 93.7270],
+      [25.5200, 93.7400],
+      [25.6500, 94.0200],
+      [25.6751, 94.1086],
+    ],
+    totalDistanceKm: 74.0,
+    remainingDistanceKm: 28.0,
+    alternativeReason: '✨ AI RECOMMENDED: Bypasses Phedema Gap low network and mudslide hazard',
+  },
+};
 
 export const MOCK_INCIDENTS: Incident[] = [
   {
@@ -128,8 +270,8 @@ export const MOCK_INCIDENTS: Incident[] = [
     severity: 'CRITICAL',
     status: 'ACTIVE',
     location: {
-      lat: 25.2200,
-      lng: 92.9500,
+      lat: 25.1500,
+      lng: 92.7000,
       name: 'Haflong - Jatinga Stretch',
       district: 'Dima Hasao',
     },
@@ -162,12 +304,12 @@ export const MOCK_INCIDENTS: Incident[] = [
     severity: 'MEDIUM',
     status: 'INVESTIGATING',
     location: {
-      lat: 25.6800,
-      lng: 94.1000,
-      name: 'Kohima Bypass Hill Slope',
-      district: 'Kohima',
+      lat: 24.2000,
+      lng: 92.7000,
+      name: 'Vairengte Hill Slope',
+      district: 'Kolasib / Aizawl Border',
     },
-    affectedRoute: 'NH-29 Dimapur-Kohima Corridor',
+    affectedRoute: 'NH-306 Aizawl-Silchar Highway',
     reportedTime: '2 hours ago',
     source: 'Citizen Report',
     description: 'Single-lane traffic restriction imposed due to deep cracks in downhill pavement edge.',
@@ -175,16 +317,16 @@ export const MOCK_INCIDENTS: Incident[] = [
   {
     id: 'inc-104',
     type: 'BRIDGE_ISSUE',
-    title: 'Culvert Structural Distress Verification',
-    severity: 'MEDIUM',
+    title: 'Phedema Gap Mudslide Danger Zone',
+    severity: 'HIGH',
     status: 'CLEARING',
     location: {
-      lat: 24.8000,
-      lng: 93.9300,
-      name: 'Imphal River Tributary Crossing',
-      district: 'Imphal East',
+      lat: 25.7500,
+      lng: 93.9000,
+      name: 'Phedema Gap Hill Pass',
+      district: 'Kohima',
     },
-    affectedRoute: 'NH-37 Jiribam-Imphal Highway',
+    affectedRoute: 'NH-29 Dimapur-Kohima Highway',
     reportedTime: '4 hours ago',
     source: 'Drone Inspection',
     description: 'Structural inspection ongoing. Axle weight limit enforced to 15 Metric Tons max.',
@@ -323,25 +465,19 @@ export const MOCK_ESSENTIAL_SUPPLIES: EssentialSupplySummary[] = [
   },
 ];
 
-// GIS Route Coordinates for Demo Simulation
-// Primary Route: Guwahati -> Shillong -> Jowai -> Haflong (Landslide Spot) -> Silchar
 export const DEMO_PRIMARY_ROUTE_COORDS: [number, number][] = [
-  [26.1445, 91.7362], // Guwahati
+  [26.1445, 91.7362],
   [25.8000, 91.8000],
-  [25.5788, 91.8933], // Shillong
-  [25.4500, 92.2000], // Jowai
-  [25.3000, 92.5000],
-  [25.2200, 92.9500], // Haflong / Landslide location
-  [24.9500, 92.8500],
-  [24.8333, 92.7789], // Silchar
+  [25.5788, 91.8933],
+  [25.4500, 92.2000],
+  [25.1500, 92.7000],
+  [24.8333, 92.7789],
 ];
 
-// Alternative Rerouted Corridor: Guwahati -> Nagaon -> Lumding -> Maibabang Bypass -> Silchar
 export const DEMO_ALTERNATIVE_ROUTE_COORDS: [number, number][] = [
-  [26.1445, 91.7362], // Guwahati
-  [26.3500, 92.2000], // Nagaon Expressway
-  [25.7500, 93.1600], // Lumding bypass
-  [25.3200, 93.1000], // Maibabang Northern Pass
-  [25.0000, 93.0000],
-  [24.8333, 92.7789], // Silchar
+  [26.1445, 91.7362],
+  [26.3500, 92.2000],
+  [25.7500, 93.1600],
+  [25.3200, 93.1000],
+  [24.8333, 92.7789],
 ];

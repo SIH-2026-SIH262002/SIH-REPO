@@ -41,4 +41,8 @@ public class SosRelayRequestDto {
 
     @Builder.Default
     private Integer hopCount = 1;
+
+    private String pathAccumulator; // Comma-separated chain of vehicle codes (e.g. NER-07 -> NER-02 -> NER-05)
+
+    private String crcChecksum;
 }

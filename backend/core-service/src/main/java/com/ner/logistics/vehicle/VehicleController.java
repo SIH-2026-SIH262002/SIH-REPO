@@ -32,6 +32,11 @@ public class VehicleController {
         return ResponseEntity.ok(vehicleService.getVehicleByCode(code));
     }
 
+    @GetMapping("/{code}/journey-details")
+    public ResponseEntity<com.ner.logistics.vehicle.dto.VehicleJourneyDetailsDto> getVehicleJourneyDetails(@PathVariable String code) {
+        return ResponseEntity.ok(vehicleService.getJourneyDetailsByCode(code));
+    }
+
     @PutMapping("/{code}/status")
     @PreAuthorize("hasAuthority('VEHICLE_MANAGE')")
     public ResponseEntity<?> updateVehicleStatus(@PathVariable String code,

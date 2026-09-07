@@ -93,4 +93,23 @@ public class SosServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> sosService.processRelayedSos(relayDto));
     }
+
+    @Test
+    void testBleProtocolSpecFraming() {
+        SosProtocolSpec.BinaryPacketFrame frame = SosProtocolSpec.BinaryPacketFrame.builder()
+                .meshPacketId("PKT-1001")
+                .originVehicleCode("NER-07")
+                .carrierVehicleCode("NER-02")
+                .latitude(25.1234)
+                .longitude(92.5678)
+                .timestampEpochSec(System.currentTimeMillis() / 1000L)
+                .hopCount(2)
+                .ttlHours(12)
+                .crcChecksum("CRC32-OK")
+                .build();
+
+        assertFalse(frame.isExpired(System.currentTimeMillis() / 1000L));
+        assertEquals(247, SosProtocolSpec.MAX_BLE_MTU_BYTES);
+        assertEquals("0000FE-NER-0000-1000-8000-00805F9B34FB", SosProtocolSpec.BLE_SERVICE_UUID);
+    }
 }

@@ -6,6 +6,9 @@ joblib
 scikit-learn
 pandas
 numpy
+xgboost
+lightgbm
+openpyxl
 requests
 twilio
 python-dotenv

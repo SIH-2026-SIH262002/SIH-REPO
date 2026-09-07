@@ -1,336 +1,250 @@
-import React, { useState } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Polyline, Circle, Tooltip } from 'react-leaflet';
+import React, { useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Tooltip, useMap } from 'react-leaflet';
 import L from 'leaflet';
-import {
-  NER_CENTER,
-  DEMO_PRIMARY_ROUTE_COORDS,
-  DEMO_ALTERNATIVE_ROUTE_COORDS,
-} from '../../data/mockData';
-import { Vehicle } from '../../types/vehicle';
-import { Incident } from '../../types/incident';
-import { DistrictStatus } from '../../types/district';
-import { SimulationState } from '../../types/simulation';
-import { LayerControl, MapLayersState } from './LayerControl';
-import { MapLegend } from './MapLegend';
+import { useTheme } from '../../context/ThemeContext';
 
-interface NERMapProps {
-  vehicles: Vehicle[];
-  incidents: Incident[];
-  districts: DistrictStatus[];
-  simulationState: SimulationState;
-  onSelectVehicle?: (vehicle: Vehicle) => void;
-  onSelectIncident?: (incident: Incident) => void;
+export interface MapSensorNode {
+  node_key: string;
+  name: string;
+  district: string;
+  lat: number;
+  lon: number;
+  risk_score: number;
+  category: 'LOW' | 'MODERATE' | 'HIGH' | 'SEVERE';
+  soil_moisture_pct?: number;
+  vibration_intensity?: number;
+  rainfall_mm_last_24h?: number;
+  rainfall_mm_last_72h?: number;
+  slope_angle_deg?: number;
 }
 
-// Custom DivIcons for crisp styling without asset loading issues
-const createVehicleIcon = (status: string, riskLevel: string, isTargeted: boolean = false) => {
-  let bgColor = '#10b981'; // Green (ON_TRACK)
-  if (status === 'DELAYED') bgColor = '#f59e0b'; // Amber
-  if (status === 'AT_RISK' || riskLevel === 'CRITICAL') bgColor = '#ef4444'; // Red
-  if (status === 'OFFLINE') bgColor = '#64748b'; // Gray
+export interface MapVehicle {
+  id: string;
+  code: string;
+  driver: string;
+  status: 'IN_TRANSIT' | 'DELAYED' | 'AT_RISK' | 'OFFLINE';
+  location: { lat: number; lng: number };
+  origin: string;
+  destination: string;
+  cargo: string;
+}
 
-  const ringClass = isTargeted ? 'animate-ping opacity-75' : '';
+interface NERMapProps {
+  sensors?: MapSensorNode[];
+  vehicles?: MapVehicle[];
+  selectedVehicle?: MapVehicle | null;
+  onSelectVehicle?: (v: MapVehicle) => void;
+  onSelectNode?: (nodeKey: string) => void;
+}
+
+// Center of North Eastern Region (Assam / Meghalaya / Central NER)
+const NER_CENTER: [number, number] = [26.15, 92.93];
+
+const MapFlyToController: React.FC<{ selectedVehicle?: MapVehicle | null }> = ({ selectedVehicle }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (selectedVehicle && selectedVehicle.location) {
+      map.flyTo([selectedVehicle.location.lat, selectedVehicle.location.lng], 9, {
+        animate: true,
+        duration: 1.2,
+      });
+    }
+  }, [selectedVehicle, map]);
+  return null;
+};
+
+// Create SVG vehicle div icon
+const createVehicleMarkerIcon = (status: string) => {
+  let color = '#10b981'; // Green
+  if (status === 'DELAYED') color = '#f59e0b'; // Amber
+  if (status === 'AT_RISK') color = '#ef4444'; // Red
+  if (status === 'OFFLINE') color = '#64748b'; // Slate
 
   return L.divIcon({
     className: 'custom-vehicle-marker',
     html: `
-      <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 34px; height: 34px;">
-        ${isTargeted ? `<div style="position: absolute; inset: 0; border-radius: 50%; background-color: ${bgColor}; opacity: 0.5;" class="${ringClass}"></div>` : ''}
-        <div style="background-color: ${bgColor}; border: 2px solid #ffffff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.25); font-weight: bold; font-size: 12px;">
-          🚚
+      <div style="position: relative; display: flex; items-center; justify-content: center; width: 32px; height: 32px;">
+        <div style="background-color: ${color}; border: 2px solid #ffffff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #ffffff; box-shadow: 0 4px 12px rgba(0,0,0,0.4);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2"/>
+            <path d="M15 18H9"/>
+            <path d="M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14v10"/>
+            <circle cx="7" cy="18" r="2"/>
+            <circle cx="17" cy="18" r="2"/>
+          </svg>
         </div>
       </div>
     `,
-    iconSize: [34, 34],
-    iconAnchor: [17, 17],
-  });
-};
-
-const createIncidentIcon = (type: string, severity: string) => {
-  let bgColor = '#ef4444'; // Landslide / Critical
-  let emoji = '🚨';
-  if (type === 'FLOOD') {
-    bgColor = '#2563eb';
-    emoji = '🌊';
-  }
-  if (type === 'ROAD_DAMAGE') {
-    bgColor = '#d97706';
-    emoji = '🚧';
-  }
-  if (type === 'BRIDGE_ISSUE') {
-    bgColor = '#7c3aed';
-    emoji = '🌉';
-  }
-
-  return L.divIcon({
-    className: 'custom-incident-marker',
-    html: `
-      <div style="background-color: ${bgColor}; border: 2px solid #ffffff; border-radius: 8px; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; color: white; box-shadow: 0 4px 12px rgba(0,0,0,0.25); transform: rotate(-5deg);">
-        <span style="font-size: 14px;">${emoji}</span>
-      </div>
-    `,
-    iconSize: [30, 30],
-    iconAnchor: [15, 15],
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
   });
 };
 
 export const NERMap: React.FC<NERMapProps> = ({
-  vehicles,
-  incidents,
-  districts,
-  simulationState,
+  sensors = [],
+  vehicles = [],
+  selectedVehicle,
   onSelectVehicle,
-  onSelectIncident,
+  onSelectNode,
 }) => {
-  const [layers, setLayers] = useState<MapLayersState>({
-    showVehicles: true,
-    showIncidents: true,
-    showRiskZones: true,
-    showRoutes: true,
-    showDistrictBoundaries: true,
-  });
+  const { theme } = useTheme();
 
-  const toggleLayer = (key: keyof MapLayersState) => {
-    setLayers((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  // Choose Leaflet Map Tile Layer based on active Light vs Dark theme
+  const tileUrl =
+    theme === 'dark'
+      ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+      : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png';
+
+  const tileAttribution =
+    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
   return (
-    <div className="relative w-full h-full rounded-xl overflow-hidden border border-slate-200 shadow-md bg-slate-100">
-      {/* Map Container */}
+    <div className="relative w-full h-full min-h-[500px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md">
       <MapContainer
         center={NER_CENTER}
         zoom={7}
-        scrollWheelZoom={true}
         className="w-full h-full z-0"
-        style={{ background: '#f8fafc' }}
+        scrollWheelZoom={true}
       >
-        {/* CARTO Voyager Light Map Tiles */}
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
-          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-        />
+        <TileLayer url={tileUrl} attribution={tileAttribution} maxZoom={18} />
+        <MapFlyToController selectedVehicle={selectedVehicle} />
 
-        {/* Primary Highway Route Polyline */}
-        {layers.showRoutes && (
-          <Polyline
-            positions={DEMO_PRIMARY_ROUTE_COORDS}
-            pathOptions={{
-              color: simulationState.primaryRouteBlocked ? '#dc2626' : '#059669',
-              weight: simulationState.primaryRouteBlocked ? 5 : 4,
-              dashArray: simulationState.primaryRouteBlocked ? '8, 8' : undefined,
-              opacity: 0.85,
-            }}
-          >
-            <Tooltip permanent={false} direction="top">
-              <span>
-                {simulationState.primaryRouteBlocked
-                  ? 'NH-27 Primary Corridor [BLOCKED - LANDSLIDE]'
-                  : 'NH-27 Primary Freight Corridor [ACTIVE]'}
-              </span>
-            </Tooltip>
-          </Polyline>
-        )}
+        {/* Sensor Nodes & ML Risk Heat Circles */}
+        {sensors.map((sensor) => {
+          let circleColor = '#10b981'; // Green (LOW)
+          if (sensor.category === 'MODERATE' || (sensor.risk_score >= 25 && sensor.risk_score < 50))
+            circleColor = '#f59e0b'; // Amber
+          if (sensor.category === 'HIGH' || (sensor.risk_score >= 50 && sensor.risk_score < 70))
+            circleColor = '#f97316'; // Orange
+          if (sensor.category === 'SEVERE' || sensor.risk_score >= 70)
+            circleColor = '#ef4444'; // Red
 
-        {/* Alternative Rerouted Corridor Polyline */}
-        {layers.showRoutes && (simulationState.alternativeRouteActive || simulationState.step >= 4) && (
-          <Polyline
-            positions={DEMO_ALTERNATIVE_ROUTE_COORDS}
-            pathOptions={{
-              color: '#0891b2', // Cyan Reroute
-              weight: 5,
-              dashArray: '10, 6',
-              opacity: 0.9,
-            }}
-          >
-            <Tooltip permanent={true} direction="center">
-              <span className="font-bold text-cyan-700 text-xs">
-                ✨ AI RE-ROUTED ALTERNATIVE CORRIDOR (132 km - LOW RISK)
-              </span>
-            </Tooltip>
-          </Polyline>
-        )}
+          const radiusMeters = 15000 + (sensor.risk_score || 20) * 150;
 
-        {/* Risk Zones Overlay */}
-        {layers.showRiskZones && (
-          <>
-            {/* Dima Hasao Risk Circle */}
-            <Circle
-              center={[25.2200, 92.9500]}
-              radius={simulationState.step >= 2 ? 35000 : 20000}
-              pathOptions={{
-                color: simulationState.step >= 3 ? '#dc2626' : simulationState.step === 2 ? '#d97706' : '#2563eb',
-                fillColor: simulationState.step >= 3 ? '#dc2626' : simulationState.step === 2 ? '#d97706' : '#2563eb',
-                fillOpacity: simulationState.step >= 3 ? 0.2 : 0.12,
-                weight: 2,
-              }}
-            />
-            {/* Cachar Flood Risk Zone */}
-            <Circle
-              center={[24.8333, 92.7789]}
-              radius={22000}
-              pathOptions={{
-                color: '#2563eb',
-                fillColor: '#2563eb',
-                fillOpacity: 0.12,
-                weight: 1,
-              }}
-            />
-          </>
-        )}
-
-        {/* District Accessibility Markers & Circles */}
-        {layers.showDistrictBoundaries &&
-          districts.map((d) => (
-            <Circle
-              key={d.id}
-              center={d.center}
-              radius={18000}
-              pathOptions={{
-                color:
-                  d.status === 'ACCESSIBLE'
-                    ? '#059669'
-                    : d.status === 'PARTIAL_ACCESS'
-                    ? '#d97706'
-                    : '#dc2626',
-                fillColor:
-                  d.status === 'ACCESSIBLE'
-                    ? '#059669'
-                    : d.status === 'PARTIAL_ACCESS'
-                    ? '#d97706'
-                    : '#dc2626',
-                fillOpacity: 0.08,
-                weight: 1,
-              }}
-            />
-          ))}
-
-        {/* Incident Markers */}
-        {layers.showIncidents &&
-          incidents.map((inc) => (
-            <Marker
-              key={inc.id}
-              position={[inc.location.lat, inc.location.lng]}
-              icon={createIncidentIcon(inc.type, inc.severity)}
-              eventHandlers={{
-                click: () => onSelectIncident && onSelectIncident(inc),
-              }}
-            >
-              <Popup className="custom-leaflet-popup">
-                <div className="p-2 space-y-1.5 text-xs text-slate-900 font-sans max-w-xs">
-                  <div className="flex items-center justify-between border-b pb-1 border-slate-200">
-                    <span className="font-bold text-rose-700 uppercase flex items-center space-x-1">
-                      <span>🚨</span>
-                      <span>{inc.type}</span>
-                    </span>
-                    <span className="bg-rose-100 text-rose-800 text-[10px] font-bold px-1.5 py-0.5 rounded">
-                      {inc.severity}
-                    </span>
-                  </div>
-
-                  <div>
-                    <h4 className="font-bold text-sm text-slate-900">{inc.title}</h4>
-                    <p className="text-[11px] text-slate-600 mt-0.5">{inc.description}</p>
-                  </div>
-
-                  <div className="bg-slate-50 p-2 rounded border border-slate-200 text-[11px] space-y-1">
-                    <div><strong>Affected Route:</strong> {inc.affectedRoute}</div>
-                    <div><strong>District:</strong> {inc.location.district}</div>
-                    <div><strong>Reported:</strong> {inc.reportedTime}</div>
-                    <div><strong>Source:</strong> {inc.source}</div>
-                  </div>
-                </div>
-              </Popup>
-            </Marker>
-          ))}
-
-        {/* Vehicle Markers */}
-        {layers.showVehicles &&
-          vehicles.map((v) => {
-            const isTarget = v.code === 'NER-07';
-            return (
-              <Marker
-                key={v.id}
-                position={[v.location.lat, v.location.lng]}
-                icon={createVehicleIcon(v.status, v.riskLevel, isTarget)}
-                eventHandlers={{
-                  click: () => onSelectVehicle && onSelectVehicle(v),
+          return (
+            <React.Fragment key={sensor.node_key}>
+              <Circle
+                center={[sensor.lat, sensor.lon]}
+                radius={radiusMeters}
+                pathOptions={{
+                  color: circleColor,
+                  fillColor: circleColor,
+                  fillOpacity: sensor.category === 'SEVERE' ? 0.45 : 0.25,
+                  weight: sensor.category === 'SEVERE' ? 3 : 1.5,
                 }}
               >
                 <Popup className="custom-leaflet-popup">
-                  <div className="p-2 space-y-2 text-xs text-slate-900 font-sans max-w-xs">
-                    <div className="flex items-center justify-between border-b pb-1 border-slate-200">
-                      <div className="flex items-center space-x-1">
-                        <span className="font-extrabold text-slate-900 text-sm">{v.code}</span>
-                        <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
-                          {v.connectivity}
-                        </span>
-                      </div>
+                  <div className="p-2 space-y-2 min-w-[200px]">
+                    <div className="flex items-center justify-between border-b pb-1">
+                      <span className="font-extrabold text-sm text-slate-900 dark:text-slate-100">
+                        {sensor.name}
+                      </span>
                       <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                          v.status === 'ON_TRACK'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : v.status === 'DELAYED'
-                            ? 'bg-amber-100 text-amber-800'
-                            : 'bg-rose-100 text-rose-800'
-                        }`}
+                        className="text-[10px] font-extrabold px-2 py-0.5 rounded text-white"
+                        style={{ backgroundColor: circleColor }}
                       >
-                        {v.status}
+                        {sensor.category} ({sensor.risk_score}/100)
                       </span>
                     </div>
 
-                    <div>
-                      <div className="font-semibold text-slate-800">{v.cargo}</div>
-                      <div className="text-[11px] text-slate-500">
-                        {v.origin} → {v.destination}
+                    <div className="grid grid-cols-2 gap-1 text-[11px] font-mono">
+                      <div>
+                        <span className="text-slate-500 block text-[9px]">MOISTURE</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {sensor.soil_moisture_pct?.toFixed(0) || '32'}%
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px]">24H RAIN</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {sensor.rainfall_mm_last_24h?.toFixed(0) || '12'}mm
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px]">VIBRATION</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {sensor.vibration_intensity?.toFixed(1) || '1.2'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-500 block text-[9px]">SLOPE</span>
+                        <span className="font-bold text-slate-800 dark:text-slate-200">
+                          {sensor.slope_angle_deg || '24'}°
+                        </span>
                       </div>
                     </div>
 
-                    <div className="bg-slate-50 p-2 rounded border border-slate-200 text-[11px] space-y-1">
-                      <div className="flex justify-between">
-                        <span>Speed:</span>
-                        <strong className="font-mono">{v.location.speedKmH} km/h</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>ETA:</span>
-                        <strong className="text-emerald-700">{v.eta}</strong>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Risk Level:</span>
-                        <strong
-                          className={
-                            v.riskLevel === 'CRITICAL' || v.riskLevel === 'HIGH'
-                              ? 'text-rose-600 font-bold'
-                              : 'text-slate-800'
-                          }
-                        >
-                          {v.riskLevel}
-                        </strong>
-                      </div>
-                      <div className="text-[10px] text-slate-500 pt-1 border-t border-slate-200">
-                        Location: {v.location.address}
-                      </div>
-                    </div>
-
-                    {isTarget && simulationState.alternativeRouteActive && (
-                      <div className="bg-cyan-50 border border-cyan-200 p-1.5 rounded text-[11px] text-cyan-900 font-semibold text-center">
-                        ✅ Rerouted to Low-Risk Alternative Corridor
-                      </div>
+                    {onSelectNode && (
+                      <button
+                        onClick={() => onSelectNode(sensor.node_key)}
+                        className="w-full mt-2 py-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded transition"
+                      >
+                        Inspect AI Risk Details
+                      </button>
                     )}
                   </div>
                 </Popup>
-              </Marker>
-            );
-          })}
+                <Tooltip permanent={sensor.category === 'SEVERE'} direction="top" offset={[0, -10]}>
+                  <span className="font-bold text-[10px] uppercase">{sensor.name}</span>
+                </Tooltip>
+              </Circle>
+            </React.Fragment>
+          );
+        })}
+
+        {/* Live GPS Tracked Vehicles */}
+        {vehicles.map((v) => (
+          <Marker
+            key={v.id}
+            position={[v.location.lat, v.location.lng]}
+            icon={createVehicleMarkerIcon(v.status)}
+            eventHandlers={{
+              click: () => {
+                if (onSelectVehicle) onSelectVehicle(v);
+              },
+            }}
+          >
+            <Popup className="custom-leaflet-popup">
+              <div className="p-1 space-y-1">
+                <div className="font-extrabold text-xs text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                  <span>{v.code} ({v.driver})</span>
+                  <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800">
+                    {v.status}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-600 dark:text-slate-400">
+                  Route: {v.origin} → {v.destination}
+                </div>
+                <div className="text-[10px] text-emerald-600 font-semibold truncate">
+                  Cargo: {v.cargo}
+                </div>
+              </div>
+            </Popup>
+          </Marker>
+        ))}
       </MapContainer>
 
-      {/* Layer Control Overlay */}
-      <div className="absolute top-3 right-3 z-10 w-48">
-        <LayerControl layers={layers} onToggleLayer={toggleLayer} />
-      </div>
-
-      {/* Map Legend Overlay */}
-      <div className="absolute bottom-3 left-3 z-10 w-56">
-        <MapLegend />
+      {/* Sleek Overlay Map Legend & Mode Badge */}
+      <div className="absolute top-3 right-3 z-[400] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-md text-xs space-y-1.5">
+        <div className="font-bold text-[11px] text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-1">
+          GIS Risk Heat Legend
+        </div>
+        <div className="flex items-center space-x-2 text-[10px]">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+          <span className="text-slate-600 dark:text-slate-300">LOW (&lt;25)</span>
+        </div>
+        <div className="flex items-center space-x-2 text-[10px]">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+          <span className="text-slate-600 dark:text-slate-300">MODERATE (25-50)</span>
+        </div>
+        <div className="flex items-center space-x-2 text-[10px]">
+          <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
+          <span className="text-slate-600 dark:text-slate-300">HIGH (50-70)</span>
+        </div>
+        <div className="flex items-center space-x-2 text-[10px]">
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
+          <span className="font-bold text-rose-600 dark:text-rose-400">SEVERE (&gt;70)</span>
+        </div>
       </div>
     </div>
   );

@@ -105,12 +105,17 @@ def _summarize_path(g: nx.Graph, path: list[str]) -> dict:
     }
 
 
-def plan_routes(origin: str, destination: str, k: int = 3) -> dict:
+def plan_routes(origin: str, destination: str, k: int = 3, criticality_multiplier: float = 1.0) -> dict:
     g = build_graph()
     if origin not in g or destination not in g:
         return {"error": f"Unknown node(s). Valid nodes: {sorted(NODES.keys())}"}
     if not nx.has_path(g, origin, destination):
         return {"error": f"No known road connectivity between {origin} and {destination} in this demo graph."}
+
+    # Apply supply criticality weighting penalty multiplier (w1..w4)
+    if criticality_multiplier != 1.0:
+        for a, b, data in g.edges(data=True):
+            data["cost"] = data["cost"] * criticality_multiplier
 
     try:
         gen = nx.shortest_simple_paths(g, origin, destination, weight="cost")

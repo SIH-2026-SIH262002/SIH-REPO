@@ -58,6 +58,10 @@ public class SosEvent {
 
     private Long relayLatencyMinutes; // Latency between offline trigger and network flush
 
+    private String pathAccumulator; // Relay vehicle lineage chain
+
+    private String crcChecksum;
+
     private LocalDateTime originTimestamp;
 
     private LocalDateTime createdAt;

@@ -50,7 +50,8 @@ public class RiskEngineServiceTest {
         RiskEvaluationResponse resp = riskEngineService.evaluateRealTimeRisk(req);
 
         assertEquals("LOW", resp.getCurrentRiskLevel());
-        assertEquals("RULE_BASED_REAL_TIME", resp.getAssessmentType());
+        assertEquals("DEMPSTER_SHAFER_FUSED", resp.getAssessmentType());
+        assertNotNull(resp.getConfidenceScore());
         assertTrue(resp.getCurrentRiskScore() < 31);
     }
 
@@ -69,7 +70,8 @@ public class RiskEngineServiceTest {
         RiskEvaluationResponse resp = riskEngineService.evaluateRealTimeRisk(req);
 
         assertEquals("HIGH", resp.getCurrentRiskLevel());
-        assertEquals("RULE_BASED_REAL_TIME", resp.getAssessmentType());
+        assertEquals("DEMPSTER_SHAFER_FUSED", resp.getAssessmentType());
+        assertNotNull(resp.getConfidenceScore());
         assertTrue(resp.getCurrentRiskScore() >= 61 && resp.getCurrentRiskScore() <= 80);
     }
 
@@ -95,7 +97,8 @@ public class RiskEngineServiceTest {
         RiskEvaluationResponse resp = riskEngineService.evaluateRealTimeRisk(req);
 
         assertEquals("CRITICAL", resp.getCurrentRiskLevel());
-        assertEquals("RULE_BASED_REAL_TIME", resp.getAssessmentType());
+        assertEquals("DEMPSTER_SHAFER_FUSED", resp.getAssessmentType());
+        assertNotNull(resp.getConfidenceScore());
         assertTrue(resp.getCurrentRiskScore() >= 81);
     }
 }

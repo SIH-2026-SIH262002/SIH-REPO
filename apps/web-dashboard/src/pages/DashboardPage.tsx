@@ -1,287 +1,204 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../hooks/useAuth';
+import { useWebSocket } from '../hooks/useWebSocket';
 import { CommandHeader } from '../components/layout/CommandHeader';
 import { Sidebar } from '../components/layout/Sidebar';
-import { NERMap } from '../components/map/NERMap';
-import { SimulationController } from '../components/dashboard/SimulationController';
-import { AccessibilitySummary } from '../components/dashboard/AccessibilitySummary';
-import { LiveAlertsPanel } from '../components/dashboard/LiveAlertsPanel';
-import { RiskIntelligencePanel } from '../components/dashboard/RiskIntelligencePanel';
-import { DistrictStatusPanel } from '../components/dashboard/DistrictStatusPanel';
-import { EssentialSupplyPanel } from '../components/dashboard/EssentialSupplyPanel';
-import { LiveSensorsPanel } from '../components/dashboard/LiveSensorsPanel';
-import { SystemFlowDiagram } from '../components/dashboard/SystemFlowDiagram';
-import { Vehicle } from '../types/vehicle';
-import { Incident } from '../types/incident';
-import { DistrictStatus } from '../types/district';
-import { EssentialSupplySummary } from '../types/shipment';
-import { SimulationState, SimulationStep } from '../types/simulation';
-import { MOCK_VEHICLES, MOCK_INCIDENTS, MOCK_DISTRICTS, MOCK_ESSENTIAL_SUPPLIES } from '../data/mockData';
+import { RoleSwitcherBar } from '../components/layout/RoleSwitcherBar';
+import { NERMap, MapSensorNode, MapVehicle } from '../components/map/NERMap';
+import { AIRoutePlannerView } from '../components/views/AIRoutePlannerView';
+import { MLRiskPlaygroundView } from '../components/views/MLRiskPlaygroundView';
+import { EmergencySOSView } from '../components/views/EmergencySOSView';
+import { FieldView } from '../components/views/FieldView';
+import { VehiclesView } from '../components/views/VehiclesView';
+import { ShipmentsView } from '../components/views/ShipmentsView';
+import { NotificationsOutboxView } from '../components/views/NotificationsOutboxView';
+import { SettingsView } from '../components/views/SettingsView';
+import { AdminDashboardView } from '../components/dashboard/roles/AdminDashboardView';
+import { LogisticsOperatorView } from '../components/dashboard/roles/LogisticsOperatorView';
+import { EmergencyOperatorView } from '../components/dashboard/roles/EmergencyOperatorView';
+import { FieldOfficerDashboardView } from '../components/dashboard/roles/FieldOfficerDashboardView';
+import { DriverDashboardView } from '../components/dashboard/roles/DriverDashboardView';
+import { apiService } from '../services/apiService';
+import { voiceService } from '../services/voiceService';
+import { exportUtils } from '../utils/exportUtils';
+import { FileText, Volume2, Radio } from 'lucide-react';
+import { MOCK_VEHICLES } from '../data/mockData';
+import { UserRole } from '../types/auth';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeRole, setActiveRole] = useState<UserRole>((user?.role as UserRole) || 'LOGISTICS_OPERATOR');
+  const [lang, setLang] = useState('EN');
+  const [voiceEnabled, setVoiceEnabled] = useState(true);
 
-  // Main Domain State
-  const [vehicles, setVehicles] = useState<Vehicle[]>(MOCK_VEHICLES);
-  const [incidents, setIncidents] = useState<Incident[]>(MOCK_INCIDENTS);
-  const [districts, setDistricts] = useState<DistrictStatus[]>(MOCK_DISTRICTS);
-  const [supplies, setSupplies] = useState<EssentialSupplySummary[]>(MOCK_ESSENTIAL_SUPPLIES);
-
-  // Selected Items for Details View
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
-  const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
-
-  // Operational Simulation State
-  const [simulationState, setSimulationState] = useState<SimulationState>({
-    step: 1,
-    isRunning: false,
-    isPaused: false,
-    stepTitle: 'Step 1: Normal Operation',
-    stepDescription: 'Vehicle NER-07 in transit carrying Emergency Medicines along NH-27 Guwahati → Silchar.',
-    affectedVehicleId: 'v-07',
-    primaryRouteBlocked: false,
-    alternativeRouteActive: false,
-    weatherAlertActive: false,
-    incidentCreated: false,
-    alertDispatched: false,
-  });
-
-  // Simulated GPS Telemetry Motion
+  // Sync user role if user logs in as a specific role
   useEffect(() => {
-    const interval = setInterval(() => {
-      setVehicles((prev) =>
-        prev.map((v) => {
-          if (v.code === 'NER-07') {
-            const latDelta = (Math.random() - 0.5) * 0.002;
-            const lngDelta = (Math.random() - 0.5) * 0.002;
-            return {
-              ...v,
-              location: {
-                ...v.location,
-                lat: Number((v.location.lat + latDelta).toFixed(4)),
-                lng: Number((v.location.lng + lngDelta).toFixed(4)),
-                lastUpdated: 'Just now',
-              },
-            };
-          }
-          return v;
-        })
-      );
-    }, 3000);
+    if (user?.role) {
+      setActiveRole(user.role as UserRole);
+    }
+  }, [user]);
 
-    return () => clearInterval(interval);
+  // Live WebSocket Connection
+  const { isConnected, lastEvent } = useWebSocket();
+
+  // Sensors & Vehicles Data State
+  const [sensors, setSensors] = useState<MapSensorNode[]>([
+    { node_key: 'GUWAHATI', name: 'Guwahati', district: 'Kamrup Metro', lat: 26.14, lon: 91.73, risk_score: 12, category: 'LOW' },
+    { node_key: 'SHILLONG', name: 'Shillong', district: 'East Khasi Hills', lat: 25.57, lon: 91.88, risk_score: 22, category: 'LOW' },
+    { node_key: 'SILCHAR', name: 'Silchar', district: 'Cachar', lat: 24.83, lon: 92.77, risk_score: 78, category: 'SEVERE', soil_moisture_pct: 88, rainfall_mm_last_24h: 120, vibration_intensity: 4.5, slope_angle_deg: 32 },
+    { node_key: 'IMPHAL', name: 'Imphal', district: 'Imphal West', lat: 24.81, lon: 93.93, risk_score: 35, category: 'MODERATE' },
+    { node_key: 'KOHIMA', name: 'Kohima', district: 'Kohima', lat: 25.67, lon: 94.1, risk_score: 42, category: 'MODERATE' },
+    { node_key: 'AIZAWL', name: 'Aizawl', district: 'Aizawl', lat: 23.73, lon: 92.71, risk_score: 55, category: 'HIGH' },
+    { node_key: 'AGARTALA', name: 'Agartala', district: 'West Tripura', lat: 23.83, lon: 91.28, risk_score: 18, category: 'LOW' },
+    { node_key: 'ITANAGAR', name: 'Itanagar', district: 'Papum Pare', lat: 27.08, lon: 93.6, risk_score: 48, category: 'MODERATE' },
+    { node_key: 'GANGTOK', name: 'Gangtok', district: 'East Sikkim', lat: 27.33, lon: 88.61, risk_score: 62, category: 'HIGH' },
+  ]);
+
+  const [vehicles, setVehicles] = useState<MapVehicle[]>(
+    MOCK_VEHICLES.map((v) => ({
+      id: v.id,
+      code: v.code,
+      driver: v.driverName,
+      status: v.status as any,
+      location: { lat: v.location.lat, lng: v.location.lng },
+      origin: v.origin,
+      destination: v.destination,
+      cargo: v.cargoDescription,
+    }))
+  );
+
+  const [selectedVehicle, setSelectedVehicle] = useState<MapVehicle | null>(null);
+
+  // Initial REST API fetch
+  useEffect(() => {
+    const initFetch = async () => {
+      try {
+        const rawSensors = await apiService.getSensors();
+        if (Array.isArray(rawSensors) && rawSensors.length > 0) {
+          setSensors(rawSensors);
+        }
+      } catch (err) {
+        console.warn('Backend REST fetch offline, operating in simulated live mode');
+      }
+    };
+    initFetch();
   }, []);
 
-  // Automatic Simulation Stepping Loop
+  // Listen to WebSocket Delta Events
   useEffect(() => {
-    let timer: NodeJS.Timeout;
-    if (simulationState.isRunning && !simulationState.isPaused) {
-      timer = setTimeout(() => {
-        if (simulationState.step < 5) {
-          jumpToSimulationStep((simulationState.step + 1) as SimulationStep);
-        } else {
-          setSimulationState((prev) => ({ ...prev, isRunning: false, isPaused: false }));
-        }
-      }, 4500);
+    if (!lastEvent) return;
+
+    if (lastEvent.kind === 'sensor_update' && lastEvent.data) {
+      const updated = lastEvent.data;
+      setSensors((prev) =>
+        prev.map((s) => (s.node_key.toUpperCase() === updated.node_key.toUpperCase() ? { ...s, ...updated } : s))
+      );
     }
-    return () => clearTimeout(timer);
-  }, [simulationState.step, simulationState.isRunning, simulationState.isPaused]);
 
-  // Jump to specific Simulation Step
-  const jumpToSimulationStep = (step: SimulationStep) => {
-    switch (step) {
-      case 1:
-        setSimulationState({
-          step: 1,
-          isRunning: true,
-          isPaused: false,
-          stepTitle: 'Step 1: Normal Operation',
-          stepDescription: 'Vehicle NER-07 in transit carrying Emergency Medicines along NH-27 Guwahati → Silchar. Route Risk: LOW.',
-          affectedVehicleId: 'v-07',
-          primaryRouteBlocked: false,
-          alternativeRouteActive: false,
-          weatherAlertActive: false,
-          incidentCreated: false,
-          alertDispatched: false,
-        });
-        setVehicles((prev) =>
-          prev.map((v) => (v.code === 'NER-07' ? { ...v, status: 'ON_TRACK', riskLevel: 'LOW', eta: '4h 20m' } : v))
-        );
-        break;
-
-      case 2:
-        setSimulationState({
-          step: 2,
-          isRunning: true,
-          isPaused: false,
-          stepTitle: 'Step 2: Weather Warning',
-          stepDescription: '⚠ Heavy Torrential Rainfall (145mm/24h) detected in Dima Hasao Sector. Route Risk elevated to MEDIUM.',
-          affectedVehicleId: 'v-07',
-          primaryRouteBlocked: false,
-          alternativeRouteActive: false,
-          weatherAlertActive: true,
-          incidentCreated: false,
-          alertDispatched: false,
-        });
-        setVehicles((prev) =>
-          prev.map((v) => (v.code === 'NER-07' ? { ...v, status: 'DELAYED', riskLevel: 'MEDIUM', eta: '4h 45m' } : v))
-        );
-        break;
-
-      case 3:
-        setSimulationState({
-          step: 3,
-          isRunning: true,
-          isPaused: false,
-          stepTitle: 'Step 3: Landslide Disruption Event',
-          stepDescription: '🚨 CRITICAL LANDSLIDE REPORTED at Haflong Pass! Primary Corridor NH-27 BLOCKED.',
-          affectedVehicleId: 'v-07',
-          primaryRouteBlocked: true,
-          alternativeRouteActive: false,
-          weatherAlertActive: true,
-          incidentCreated: true,
-          alertDispatched: false,
-        });
-        setVehicles((prev) =>
-          prev.map((v) => (v.code === 'NER-07' ? { ...v, status: 'AT_RISK', riskLevel: 'CRITICAL', eta: 'DELAYED (BLOCKED)' } : v))
-        );
-        break;
-
-      case 4:
-        setSimulationState({
-          step: 4,
-          isRunning: true,
-          isPaused: false,
-          stepTitle: 'Step 4: AI Intelligence Rerouting Engine',
-          stepDescription: '✨ GraphHopper AI engine evaluated alternative bypass corridor (132 km - LOW RISK). Rerouting NER-07.',
-          affectedVehicleId: 'v-07',
-          primaryRouteBlocked: true,
-          alternativeRouteActive: true,
-          weatherAlertActive: true,
-          incidentCreated: true,
-          alertDispatched: false,
-        });
-        setVehicles((prev) =>
-          prev.map((v) =>
-            v.code === 'NER-07'
-              ? {
-                  ...v,
-                  status: 'ON_TRACK',
-                  riskLevel: 'LOW',
-                  eta: '4h 45m (Alternative Pass)',
-                  alternativeRouteAvailable: true,
-                }
-              : v
-          )
-        );
-        break;
-
-      case 5:
-        setSimulationState({
-          step: 5,
-          isRunning: false,
-          isPaused: false,
-          stepTitle: 'Step 5: Automated Alert Dispatch',
-          stepDescription: '🚨 ROUTE DISRUPTION ALERT dispatched to District Authority, Logistics Command & Driver App.',
-          affectedVehicleId: 'v-07',
-          primaryRouteBlocked: true,
-          alternativeRouteActive: true,
-          weatherAlertActive: true,
-          incidentCreated: true,
-          alertDispatched: true,
-        });
-        break;
+    if (lastEvent.kind === 'alert' && lastEvent.data) {
+      const alertData = lastEvent.data;
+      if (voiceEnabled) {
+        voiceService.speakAlert(alertData.message || 'Critical landslide warning detected', lang as any);
+      }
     }
-  };
-
-  const handleStartSimulation = () => {
-    if (simulationState.step === 5) {
-      jumpToSimulationStep(1);
-    } else {
-      setSimulationState((prev) => ({ ...prev, isRunning: true, isPaused: false }));
-    }
-  };
-
-  const handlePauseSimulation = () => {
-    setSimulationState((prev) => ({ ...prev, isPaused: true }));
-  };
-
-  const handleResetSimulation = () => {
-    jumpToSimulationStep(1);
-    setSimulationState((prev) => ({ ...prev, isRunning: false, isPaused: false }));
-  };
+  }, [lastEvent, voiceEnabled, lang]);
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col transition-colors duration-200">
       {/* Top Header */}
-      <CommandHeader activeStep={simulationState.step} onResetSimulation={handleResetSimulation} />
+      <CommandHeader lang={lang} onLanguageChange={setLang} />
 
-      <div className="flex flex-1 overflow-hidden">
+      {/* Role Switcher Floating Bar */}
+      <RoleSwitcherBar activeRole={activeRole} onRoleChange={setActiveRole} />
+
+      {/* Action Utility Subheader Bar */}
+      <div className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center justify-between text-xs">
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1.5 font-bold">
+            <Radio className={`w-3.5 h-3.5 ${isConnected ? 'text-emerald-500 animate-pulse' : 'text-amber-500'}`} />
+            <span className={isConnected ? 'text-emerald-400' : 'text-amber-400'}>
+              {isConnected ? 'LIVE WEBSOCKET STREAM CONNECTED' : 'OFFLINE TELEMETRY SIMULATION'}
+            </span>
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
+          {/* Voice Announcement Toggle */}
+          <button
+            onClick={() => setVoiceEnabled(!voiceEnabled)}
+            className={`px-3 py-1 rounded-lg border text-xs font-bold transition flex items-center space-x-1.5 ${
+              voiceEnabled
+                ? 'bg-indigo-950 border-indigo-800 text-indigo-300'
+                : 'bg-slate-800 border-slate-700 text-slate-500'
+            }`}
+            title="Toggle Web Speech API Voice Announcements"
+          >
+            <Volume2 className="w-3.5 h-3.5" />
+            <span>Voice Alerts: {voiceEnabled ? 'ON 🔊' : 'OFF 🔇'}</span>
+          </button>
+
+          {/* Executive PDF Report Generator */}
+          <button
+            onClick={() => exportUtils.generateExecutiveSummaryPDF()}
+            className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg transition flex items-center space-x-1.5 shadow-sm"
+            title="Generate NDMA Executive Summary PDF Report"
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Export PDF Report</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Main Workspace Layout */}
+      <div className="flex-1 flex overflow-hidden max-w-[1920px] w-full mx-auto">
         {/* Navigation Sidebar */}
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
-        {/* Main Content Area */}
-        <main className="flex-1 p-4 overflow-y-auto space-y-4 max-w-[1920px] mx-auto w-full">
-          {/* Simulation Controller Bar */}
-          <SimulationController
-            state={simulationState}
-            onStart={handleStartSimulation}
-            onPause={handlePauseSimulation}
-            onReset={handleResetSimulation}
-            onJumpToStep={jumpToSimulationStep}
-          />
+        {/* Primary Content Module Surface */}
+        <main className="flex-1 overflow-y-auto p-6 space-y-6">
+          {activeTab === 'dashboard' && (
+            <div className="space-y-6">
+              {/* Dynamic Role Dashboard View */}
+              {activeRole === 'ADMIN' && <AdminDashboardView />}
+              {activeRole === 'LOGISTICS_OPERATOR' && <LogisticsOperatorView />}
+              {activeRole === 'EMERGENCY_OPERATOR' && <EmergencyOperatorView />}
+              {activeRole === 'FIELD_OFFICER' && <FieldOfficerDashboardView />}
+              {activeRole === 'DRIVER' && <DriverDashboardView />}
 
-          {/* Top Accessibility Metrics Summary Bar */}
-          <AccessibilitySummary
-            districtAccessiblePct={68}
-            activeVehiclesCount={vehicles.length}
-            activeIncidentsCount={incidents.length}
-            highRiskCorridorsCount={5}
-            delayedShipmentsCount={supplies.reduce((acc, s) => acc + s.delayed, 0)}
-          />
+              {/* GIS Interactive Tactical Map Overlay */}
+              <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h2 className="text-lg font-bold text-white">
+                      GIS Tactical Landslide & Logistics Spatial Radar
+                    </h2>
+                    <p className="text-xs text-slate-400">
+                      Real-time spatial monitoring of 18 sensor nodes, vehicle telemetry, and disaster hazard polygons across North Eastern India.
+                    </p>
+                  </div>
+                </div>
 
-          {/* Central Hero Grid: Map + Right Panel */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 min-h-[580px]">
-            {/* Interactive Leaflet Map Hero (Takes 2 Columns) */}
-            <div className="lg:col-span-2 min-h-[520px]">
-              <NERMap
-                vehicles={vehicles}
-                incidents={incidents}
-                districts={districts}
-                simulationState={simulationState}
-                onSelectVehicle={(v) => setSelectedVehicle(v)}
-                onSelectIncident={(inc) => setSelectedIncident(inc)}
-              />
-            </div>
-
-            {/* Right Side Column: Live Alerts & AI Risk Intelligence */}
-            <div className="space-y-4 flex flex-col justify-between">
-              <RiskIntelligencePanel
-                overallRisk={
-                  simulationState.step >= 3 ? 'CRITICAL' : simulationState.step === 2 ? 'HIGH' : 'LOW'
-                }
-                weatherImpactPct={simulationState.step >= 2 ? 85 : 30}
-                roadConditionPct={simulationState.step >= 3 ? 90 : 40}
-                historicalRiskPct={55}
-                fieldReportsPct={simulationState.step >= 3 ? 88 : 45}
-              />
-
-              <div className="flex-1 min-h-[300px]">
-                <LiveAlertsPanel />
+                <div className="h-[550px] w-full rounded-xl overflow-hidden border border-slate-800">
+                  <NERMap
+                    sensors={sensors}
+                    vehicles={vehicles}
+                    selectedVehicle={selectedVehicle}
+                    onSelectVehicle={setSelectedVehicle}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          {/* Bottom Grid: District Connectivity, Essential Supply, Live Sensors */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <DistrictStatusPanel districts={districts} />
-            <EssentialSupplyPanel supplies={supplies} />
-            <LiveSensorsPanel />
-          </div>
-
-          {/* Platform Intelligence Pipeline Flow Diagram */}
-          <SystemFlowDiagram />
+          {activeTab === 'route-planner' && <AIRoutePlannerView />}
+          {activeTab === 'risk' && <MLRiskPlaygroundView />}
+          {activeTab === 'sos' && <EmergencySOSView />}
+          {activeTab === 'field' && <FieldView />}
+          {activeTab === 'vehicles' && <VehiclesView />}
+          {activeTab === 'shipments' && <ShipmentsView />}
+          {activeTab === 'notifications' && <NotificationsOutboxView />}
+          {activeTab === 'settings' && <SettingsView />}
         </main>
       </div>
     </div>

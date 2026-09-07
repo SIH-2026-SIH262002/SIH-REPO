@@ -22,5 +22,9 @@ public class RiskEvaluationResponse {
 
     private List<FactorImpactDto> factors;
 
+    private Double confidenceScore; // Dempster-Shafer fused confidence (0-100)
+
+    private Double uncertaintyMetric; // Uncommitted belief mass
+
     private String explanation;
 }

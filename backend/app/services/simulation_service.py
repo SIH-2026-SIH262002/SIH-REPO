@@ -154,8 +154,50 @@ async def _tick_node(node_key: str):
     broadcast({"kind": "sensor_update", "data": s})
 
 
+def inject_storm_event(node_key: str, duration_ticks: int = 10, rainfall_24h: float = 120.0, vibration: float = 4.5):
+    node_key = node_key.upper()
+    if node_key in STATE:
+        s = STATE[node_key]
+        s["storm_event"] = True
+        s["storm_ticks_remaining"] = duration_ticks
+        s["rainfall_mm_last_24h"] = rainfall_24h
+        s["rainfall_mm_last_72h"] = max(s["rainfall_mm_last_72h"], rainfall_24h * 1.5)
+        s["soil_moisture_pct"] = min(95.0, s["soil_moisture_pct"] + 35.0)
+        s["vibration_intensity"] = vibration
+        s["days_since_last_rainfall"] = 0
+        prediction = ml_service.predict_risk(s)
+        s.update(prediction)
+        s["last_updated"] = datetime.now(timezone.utc).isoformat()
+        
+        alert = {
+            "id": f"ALT-{int(time.time() * 1000)}-{node_key}",
+            "type": "SIMULATED_STORM_INJECTED",
+            "node_key": node_key,
+            "node_name": s["name"],
+            "district": s["district"],
+            "risk_score": s["risk_score"],
+            "category": s["category"],
+            "message": f"CRITICAL STORM INJECTED at {s['name']} ({s['district']}). Risk score {s['risk_score']}/100.",
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "active": True,
+        }
+        ALERTS.insert(0, alert)
+        broadcast({"kind": "alert", "data": alert})
+        broadcast({"kind": "sensor_update", "data": s})
+        return s
+    return None
+
+
+def reset_simulation_state():
+    init_state()
+    ALERTS.clear()
+    broadcast({"kind": "system_reset", "timestamp": datetime.now(timezone.utc).isoformat()})
+    return {"status": "reset_complete"}
+
+
 async def run_forever(interval_seconds: float = 4.0):
     init_state()
     while True:
         await asyncio.gather(*(_tick_node(k) for k in NODES.keys()))
         await asyncio.sleep(interval_seconds)
+

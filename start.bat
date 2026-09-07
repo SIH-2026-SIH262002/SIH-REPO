@@ -6,7 +6,7 @@ set "ROOT=%~dp0"
 set "VENV_DIR=%ROOT%.venv"
 set "VENV_PY=%VENV_DIR%\Scripts\python.exe"
 set "BACKEND_DIR=%ROOT%backend"
-set "FRONTEND_DIR=%ROOT%frontend"
+set "FRONTEND_DIR=%ROOT%apps\web-dashboard"
 
 echo ============================================
 echo   NER LogiSense - Starting Full Stack

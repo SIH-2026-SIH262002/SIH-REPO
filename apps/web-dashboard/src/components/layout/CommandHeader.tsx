@@ -1,15 +1,22 @@
 import React from 'react';
 import { useAuth } from '../../hooks/useAuth';
-import { Truck, Bell, Radio, MapPin, LogOut } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { Truck, Bell, Radio, MapPin, LogOut, Sun, Moon, Globe } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface CommandHeaderProps {
-  activeStep: number;
-  onResetSimulation: () => void;
+  activeStep?: number;
+  onResetSimulation?: () => void;
+  lang?: string;
+  onLanguageChange?: (lang: string) => void;
 }
 
-export const CommandHeader: React.FC<CommandHeaderProps> = ({ activeStep, onResetSimulation }) => {
+export const CommandHeader: React.FC<CommandHeaderProps> = ({
+  lang = 'EN',
+  onLanguageChange,
+}) => {
   const { user, logout } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -18,57 +25,91 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({ activeStep, onRese
   };
 
   return (
-    <header className="bg-white border-b border-slate-200 text-slate-800 sticky top-0 z-50 shadow-sm">
+    <header className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100 sticky top-0 z-50 shadow-sm transition-colors duration-200">
       <div className="max-w-[1920px] mx-auto px-4 h-16 flex items-center justify-between">
         {/* Brand & Platform Identity */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold shadow-md shadow-emerald-600/20 border border-emerald-500">
+          <div className="w-10 h-10 rounded-xl bg-emerald-600 dark:bg-emerald-500 flex items-center justify-center text-white font-bold shadow-md shadow-emerald-600/20 border border-emerald-500">
             <Truck className="w-5 h-5 text-white" />
           </div>
           <div>
             <div className="flex items-center space-x-2">
-              <span className="font-extrabold tracking-wider text-sm sm:text-base text-slate-900">
+              <span className="font-extrabold tracking-wider text-sm sm:text-base text-slate-900 dark:text-slate-100">
                 NER SMART LOGISTICS
               </span>
-              <span className="bg-emerald-50 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 tracking-wide">
+              <span className="bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800 tracking-wide">
                 ACCESSIBILITY INTELLIGENCE
               </span>
             </div>
-            <span className="text-[11px] text-slate-500 block tracking-tight">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 block tracking-tight">
               Command Center Surface • North Eastern Region (8 States)
             </span>
           </div>
         </div>
 
-        {/* System & Telemetry Live Telemetry Bar */}
-        <div className="hidden lg:flex items-center space-x-6 text-xs bg-slate-50 px-4 py-1.5 rounded-lg border border-slate-200">
+        {/* System & Telemetry Status Bar */}
+        <div className="hidden lg:flex items-center space-x-6 text-xs bg-slate-50 dark:bg-slate-900 px-4 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800">
           <div className="flex items-center space-x-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-slate-500">SYSTEM:</span>
-            <span className="font-bold text-emerald-700 uppercase tracking-wide">OPERATIONAL</span>
+            <span className="text-slate-500 dark:text-slate-400">SYSTEM:</span>
+            <span className="font-bold text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">OPERATIONAL</span>
           </div>
 
-          <div className="h-3 w-px bg-slate-200" />
+          <div className="h-3 w-px bg-slate-200 dark:bg-slate-800" />
 
           <div className="flex items-center space-x-1.5">
-            <Radio className="w-3.5 h-3.5 text-teal-600" />
-            <span className="text-slate-500">TELEMETRY:</span>
-            <span className="font-semibold text-slate-700">GPS • Weather • Sensors</span>
+            <Radio className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+            <span className="text-slate-500 dark:text-slate-400">STREAM:</span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300">WebSocket Live Feed</span>
           </div>
 
-          <div className="h-3 w-px bg-slate-200" />
+          <div className="h-3 w-px bg-slate-200 dark:bg-slate-800" />
 
           <div className="flex items-center space-x-1.5">
-            <MapPin className="w-3.5 h-3.5 text-amber-600" />
-            <span className="text-slate-500">HIGH-RISK CORRIDOR:</span>
-            <span className="font-semibold text-amber-700">Dima Hasao Pass</span>
+            <MapPin className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
+            <span className="text-slate-500 dark:text-slate-400">HIGH-RISK CORRIDOR:</span>
+            <span className="font-semibold text-amber-700 dark:text-amber-400">NH-27 Dima Hasao Pass</span>
           </div>
         </div>
 
-        {/* Right Section - Notifications & User Info */}
+        {/* Right Controls - Theme Toggle, Language Switcher, Notifications & User Info */}
         <div className="flex items-center space-x-3">
+          {/* Light / Dark Theme Toggle Button */}
+          <button
+            onClick={toggleTheme}
+            className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition flex items-center space-x-1"
+            title={`Switch to ${theme === 'light' ? 'Dark (Black)' : 'Light (White)'} Mode`}
+          >
+            {theme === 'light' ? (
+              <>
+                <Moon className="w-4 h-4 text-slate-700" />
+                <span className="text-xs font-semibold hidden md:inline">Dark</span>
+              </>
+            ) : (
+              <>
+                <Sun className="w-4 h-4 text-amber-400" />
+                <span className="text-xs font-semibold hidden md:inline text-amber-300">Light</span>
+              </>
+            )}
+          </button>
+
+          {/* Multilingual Selector */}
+          <div className="relative flex items-center">
+            <button
+              onClick={() => {
+                const nextLang = lang === 'EN' ? 'HI' : lang === 'HI' ? 'AS' : 'EN';
+                if (onLanguageChange) onLanguageChange(nextLang);
+              }}
+              className="p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 transition flex items-center space-x-1.5 text-xs font-bold"
+              title="Change Language (EN / HI / AS)"
+            >
+              <Globe className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span>{lang}</span>
+            </button>
+          </div>
+
           {/* Notifications Trigger */}
-          <button className="relative p-2 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition">
+          <button className="relative p-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition border border-slate-200 dark:border-slate-700">
             <Bell className="w-4 h-4" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full animate-ping" />
             <span className="absolute top-1 right-1 w-2 h-2 bg-rose-500 rounded-full" />
@@ -76,10 +117,10 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({ activeStep, onRese
 
           {/* User Profile Info */}
           {user && (
-            <div className="flex items-center space-x-3 pl-2 border-l border-slate-200">
+            <div className="flex items-center space-x-3 pl-2 border-l border-slate-200 dark:border-slate-800">
               <div className="text-right hidden sm:block">
-                <span className="block text-xs font-bold text-slate-900">{user.fullName || 'Govind (Officer)'}</span>
-                <span className="block text-[10px] text-emerald-700 font-mono font-semibold">{user.role || 'ADMIN'}</span>
+                <span className="block text-xs font-bold text-slate-900 dark:text-slate-100">{user.fullName || 'Govind (Officer)'}</span>
+                <span className="block text-[10px] text-emerald-700 dark:text-emerald-400 font-mono font-semibold">{user.role || 'ADMIN'}</span>
               </div>
               <button
                 onClick={() => navigate('/profile')}
@@ -90,7 +131,7 @@ export const CommandHeader: React.FC<CommandHeaderProps> = ({ activeStep, onRese
               </button>
               <button
                 onClick={handleLogout}
-                className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 transition"
+                className="p-2 rounded-lg bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 transition"
                 title="Logout"
               >
                 <LogOut className="w-4 h-4" />
