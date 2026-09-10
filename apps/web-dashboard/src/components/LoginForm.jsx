@@ -114,15 +114,10 @@ export default function LoginForm({ onViewChange, onLoginSuccess }) {
                 )}
             </button>
 
-            <div className="text-center mt-6">
-                <span className="text-slate-400 text-sm">Don't have an account? </span>
-                <button
-                    type="button"
-                    onClick={() => onViewChange('register')}
-                    className="text-purple-400 hover:text-purple-300 text-sm font-semibold transition-colors underline-offset-4 hover:underline"
-                >
-                    Sign up
-                </button>
+            <div className="text-center mt-6 pt-4 border-t border-slate-700/50">
+                <span className="text-slate-400 text-xs">
+                    Account access is provisioned by authorized platform administrators. Public self-registration is disabled.
+                </span>
             </div>
         </form>
     );

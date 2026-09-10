@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import LoginForm from './LoginForm';
-import RegisterForm from './RegisterForm';
 import ForgotPasswordForm from './ForgotPasswordForm';
 import ResetPasswordForm from './ResetPasswordForm';
 
@@ -8,8 +7,7 @@ export default function AuthCard({ onViewChange }) {
     const [view, setView] = useState('login');
 
     const titles = {
-        login: 'Welcome Back',
-        register: 'Create Account',
+        login: 'Authorized Login',
         forgot: 'Forgot password',
         reset: 'Reset password'
     };
@@ -27,9 +25,6 @@ export default function AuthCard({ onViewChange }) {
                 <div className="transition-all duration-300">
                     {view === 'login' && (
                         <LoginForm onViewChange={setView} onLoginSuccess={() => onViewChange('dashboard')} />
-                    )}
-                    {view === 'register' && (
-                        <RegisterForm onViewChange={setView} />
                     )}
                     {view === 'forgot' && (
                         <ForgotPasswordForm onViewChange={setView} />

@@ -83,10 +83,10 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
         <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900">
-          NER LOGISTICS PLATFORM
+          AUTHORIZED PERSONNEL LOGIN
         </h2>
         <p className="mt-1 text-center text-xs text-slate-500">
-          Smart Logistics & Accessibility Intelligence for North Eastern Region of India
+          NER Logistics & Accessibility Intelligence Platform — Authorized Access Only
         </p>
       </div>
 
@@ -225,16 +225,10 @@ export const LoginPage: React.FC = () => {
             </div>
           </form>
 
-          {/* Registration Link */}
+          {/* Operational Access Notice */}
           <div className="mt-6 pt-5 border-t border-slate-200 text-center">
-            <p className="text-xs text-slate-600">
-              Need platform authorization?{' '}
-              <Link
-                to="/register"
-                className="font-medium text-emerald-700 hover:text-emerald-800 transition"
-              >
-                Register Operational User
-              </Link>
+            <p className="text-xs text-slate-500">
+              Account provisioning is restricted to authorized platform administrators. Public self-registration is disabled.
             </p>
           </div>
         </div>
