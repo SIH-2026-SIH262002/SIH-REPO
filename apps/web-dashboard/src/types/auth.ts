@@ -1,9 +1,21 @@
 export type UserRole =
   | 'ADMIN'
-  | 'LOGISTICS_OPERATOR'
   | 'EMERGENCY_OPERATOR'
+  | 'LOGISTICS_OPERATOR'
   | 'FIELD_OFFICER'
   | 'DRIVER';
+
+export function normalizeUserRole(role?: string): UserRole {
+  if (!role) return 'FIELD_OFFICER';
+  const uRole = role.toUpperCase();
+  if (uRole === 'SUPER_ADMIN') return 'ADMIN';
+  if (uRole === 'DISTRICT_AUTHORITY') return 'EMERGENCY_OPERATOR';
+  const canonicals: UserRole[] = ['ADMIN', 'EMERGENCY_OPERATOR', 'LOGISTICS_OPERATOR', 'FIELD_OFFICER', 'DRIVER'];
+  if (canonicals.includes(uRole as UserRole)) {
+    return uRole as UserRole;
+  }
+  return 'FIELD_OFFICER';
+}
 
 export interface User {
   id: string | number;

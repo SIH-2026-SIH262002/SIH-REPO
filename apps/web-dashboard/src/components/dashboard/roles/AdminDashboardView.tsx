@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ShieldCheck, Cpu, Database, Activity, RefreshCw, AlertCircle, CheckCircle2, UserX, UserCheck, Lock, Radio } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ShieldCheck, Cpu, Database, Activity, RefreshCw, AlertCircle, CheckCircle2, UserX, UserCheck, Lock, Radio, BatteryCharging } from 'lucide-react';
+import { apiService } from '../../../services/apiService';
 
 interface MockUser {
   id: string;
@@ -21,7 +22,26 @@ interface AuditLog {
   ip: string;
 }
 
+interface DeviceTelemetry {
+  deviceId: string;
+  batteryPct: number;
+  solarStatus: string;
+  rssiDbm: number;
+  firmware: string;
+}
+
 export const AdminDashboardView: React.FC = () => {
+  // Device Hardware Telemetry State (Connected Backend Feature)
+  const [deviceTelemetry, setDeviceTelemetry] = useState<DeviceTelemetry[]>([]);
+
+  useEffect(() => {
+    const fetchDevices = async () => {
+      const data = await apiService.getDeviceTelemetry();
+      if (Array.isArray(data)) setDeviceTelemetry(data);
+    };
+    fetchDevices();
+  }, []);
+
   // 1. User Management State with Soft Account States
   const [users, setUsers] = useState<MockUser[]>([
     { id: 'USR-01', name: 'Dr. Rajesh Sharma', email: 'rajesh.sharma@ndma.gov.in', role: 'ADMIN', district: 'Guwahati (Kamrup)', status: 'ACTIVE', lastActive: 'Just now' },
@@ -57,7 +77,6 @@ export const AdminDashboardView: React.FC = () => {
       prev.map((u) => {
         if (u.id === userId) {
           const updated = { ...u, status: targetStatus };
-          // Append audit log
           const newLog: AuditLog = {
             id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
             timestamp: new Date().toLocaleTimeString(),
@@ -194,11 +213,19 @@ export const AdminDashboardView: React.FC = () => {
           </div>
         </div>
 
-        {/* Infrastructure Health Cards */}
+        {/* Infrastructure Health & IoT Edge Hardware Telemetry */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
-          <div className="flex items-center space-x-2 border-b border-slate-800 pb-3">
-            <Database className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-white text-sm">Infrastructure Telemetry</h3>
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center space-x-2">
+              <Database className="w-5 h-5 text-emerald-400" />
+              <h3 className="font-bold text-white text-sm">Infrastructure Telemetry</h3>
+            </div>
+            {deviceTelemetry.length > 0 && (
+              <span className="flex items-center space-x-1 text-[10px] text-emerald-400 font-mono">
+                <BatteryCharging className="w-3.5 h-3.5" />
+                <span>IoT Solar Battery {deviceTelemetry[0].batteryPct}%</span>
+              </span>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">

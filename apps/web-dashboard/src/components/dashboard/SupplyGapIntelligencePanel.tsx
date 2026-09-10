@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ShieldAlert, Clock, AlertTriangle, ArrowRight, CornerUpRight, Send, Activity, RefreshCw } from 'lucide-react';
 import { Vehicle } from '../../types/vehicle';
+import { apiService } from '../../services/apiService';
 
 interface SupplyGapData {
   district: string;
@@ -39,40 +40,28 @@ export const SupplyGapIntelligencePanel: React.FC<SupplyGapIntelligencePanelProp
     setIsLoading(true);
     setError(null);
     try {
-      const res = await fetch('http://localhost:8080/api/shipments/supply-gaps');
-      if (res.ok) {
-        const json = await res.json();
-        if (json && json.length > 0) {
-          setData(json[0]);
-        }
-      } else {
-        // Fallback derived data if core-service unavailable
+      const res = await apiService.getSupplyGapIntelligence();
+      if (res && res.supply_gaps && res.supply_gaps.length > 0) {
+        const item = res.supply_gaps[0];
         setData({
-          district: 'Dima Hasao (Haflong)',
-          commodityType: 'OXYGEN_CYLINDERS',
-          riskLevel: 'CRITICAL',
-          estimatedDelayHours: 4,
-          affectedShipmentsCount: 1,
-          recommendedAction: 'REROUTE_CONVOY_SH51_BYPASS',
-          rationale: 'Convoy NER-07 carrying oxygen delayed at Haflong Pass due to active landslide.',
-          availableQuantity: 14.0,
-          unitOfMeasure: 'Cylinders',
-          consumptionRatePerHour: 2.2,
-          incomingShipmentCode: 'NER-07',
-          incomingShipmentEta: '4h 20m',
-          incomingDelayHours: 4.0,
-          projectedShortageHours: 6.33,
+          district: item.district,
+          commodityType: item.commodities.join(', ') || 'Essential Commodities',
+          riskLevel: item.max_corridor_risk >= 70 ? 'CRITICAL' : item.max_corridor_risk >= 50 ? 'HIGH' : 'MODERATE',
+          estimatedDelayHours: item.delayed_shipments * 2,
+          affectedShipmentsCount: item.incoming_shipments_count,
+          recommendedAction: item.operational_recommendation,
+          rationale: `Monitored ${item.district} corridor with peak segment hazard risk score ${item.max_corridor_risk}.`,
           recommendationConfidence: 0.88,
           reasons: [
-            'Civil Hospital reserve down to 14.0 units',
-            'Consumption rate is 2.2 units/hour',
-            'Primary highway NH-27 clearance estimated > 18 hours',
-            'SH-51 Bypass adds only +18 km',
+            `Peak corridor risk score: ${item.max_corridor_risk}`,
+            `Incoming shipments in transit: ${item.incoming_shipments_count}`,
+            `Warehouse stock status: ${item.warehouse_stock_feed}`
           ],
-          dataFreshness: 'Just now',
+          dataFreshness: 'Live (5s tick)',
         });
       }
     } catch (e) {
+      console.warn('FastAPI intelligence API offline, displaying fallback gap state');
       setError('Telemetry stream unavailable');
       setData({
         district: 'Dima Hasao (Haflong)',

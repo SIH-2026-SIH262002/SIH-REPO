@@ -30,8 +30,20 @@ public class SosController {
 
     @GetMapping("/active")
     @PreAuthorize("hasAuthority('SOS_VIEW') or hasAuthority('SOS_VIEW_SELF')")
-    public ResponseEntity<List<SosEvent>> getActiveSosEvents() {
-        return ResponseEntity.ok(sosService.getActiveSosEvents());
+    public ResponseEntity<List<SosEvent>> getActiveSosEvents(Authentication authentication) {
+        List<SosEvent> events = sosService.getActiveSosEvents();
+        if (authentication != null && authentication.getPrincipal() instanceof User u) {
+            if (u.getRole() == UserRole.EMERGENCY_OPERATOR && u.getDistrict() != null && !u.getDistrict().trim().isEmpty()) {
+                String operatorDistrict = u.getDistrict().trim().toLowerCase();
+                List<SosEvent> filtered = events.stream()
+                        .filter(s -> s.getDistrict() == null || s.getDistrict().trim().isEmpty() ||
+                                s.getDistrict().toLowerCase().contains(operatorDistrict) ||
+                                operatorDistrict.contains(s.getDistrict().toLowerCase()))
+                        .toList();
+                return ResponseEntity.ok(filtered);
+            }
+        }
+        return ResponseEntity.ok(events);
     }
 
     @GetMapping("/nearby")

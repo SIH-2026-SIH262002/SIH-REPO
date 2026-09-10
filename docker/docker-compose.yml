@@ -14,6 +14,7 @@ services:
       - "5432:5432"
     volumes:
       - postgis_data:/var/lib/postgresql/data
+      - ./postgis/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
 
   # Real-Time Telemetry & Ephemeral Cache
   redis:

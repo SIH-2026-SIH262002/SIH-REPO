@@ -89,8 +89,8 @@ export const RegisterPage: React.FC = () => {
     }
   };
 
-  const showOrganizationField = role === 'LOGISTICS_OPERATOR' || role === 'ADMIN' || role === 'SUPER_ADMIN';
-  const showDistrictField = role === 'DISTRICT_AUTHORITY' || role === 'FIELD_OFFICER' || role === 'DRIVER';
+  const showOrganizationField = role === 'LOGISTICS_OPERATOR' || role === 'ADMIN';
+  const showDistrictField = role === 'EMERGENCY_OPERATOR' || role === 'FIELD_OFFICER' || role === 'DRIVER';
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-900 font-sans">
@@ -193,12 +193,11 @@ export const RegisterPage: React.FC = () => {
                 onChange={(e) => setRole(e.target.value as UserRole)}
                 className="block w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-slate-900 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500"
               >
-                <option value="FIELD_OFFICER">FIELD OFFICER (Incident & Geo Reporting)</option>
-                <option value="LOGISTICS_OPERATOR">LOGISTICS OPERATOR (Shipment & Deliveries)</option>
-                <option value="DISTRICT_AUTHORITY">DISTRICT AUTHORITY (Jurisdiction Monitoring)</option>
-                <option value="DRIVER">DRIVER (GPS Check-in & Fleet SOS)</option>
-                <option value="ADMIN">ADMINISTRATOR (Operational Config)</option>
-                <option value="SUPER_ADMIN">SUPER ADMIN (System Wide)</option>
+                <option value="FIELD_OFFICER">FIELD OFFICER (Ground Evidence & Inspection)</option>
+                <option value="LOGISTICS_OPERATOR">LOGISTICS OPERATOR (Fleet & Cold-Chain)</option>
+                <option value="EMERGENCY_OPERATOR">EMERGENCY OPERATOR (Disaster Command & SOS Radar)</option>
+                <option value="DRIVER">DRIVER (Vehicle Operation & Telematics)</option>
+                <option value="ADMIN">ADMINISTRATOR (System & Security Governance)</option>
               </select>
             </div>
 

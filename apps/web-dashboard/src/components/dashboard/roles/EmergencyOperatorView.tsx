@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { AlertTriangle, Radio, ShieldAlert, Navigation, CheckCircle2, Siren, XCircle, MapPin, PhoneCall } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { AlertTriangle, Radio, ShieldAlert, Navigation, CheckCircle2, Siren, XCircle, MapPin, PhoneCall, Clock } from 'lucide-react';
+import { apiService } from '../../../services/apiService';
 
 interface SOSAlert {
   id: string;
@@ -29,9 +30,27 @@ interface CorridorGeofence {
   name: string;
   status: 'OPEN' | 'EMERGENCY_ONLY' | 'CLOSED_LANDSLIDE';
   affectedKm: string;
+  etrPrediction?: string;
 }
 
 export const EmergencyOperatorView: React.FC = () => {
+  // ML Corridor Recovery ETR Prediction State
+  const [corridorETR, setCorridorETR] = useState<{ estHours: number; lower: number; upper: number } | null>(null);
+
+  useEffect(() => {
+    const fetchETR = async () => {
+      const recovery = await apiService.getCorridorRecovery('NH-27');
+      if (recovery) {
+        setCorridorETR({
+          estHours: recovery.estimatedClearanceHours,
+          lower: recovery.confidenceLowerHours,
+          upper: recovery.confidenceUpperHours,
+        });
+      }
+    };
+    fetchETR();
+  }, []);
+
   // 1. Live SOS Alerts (Deduplicated Panic Grid)
   const [sosAlerts, setSosAlerts] = useState<SOSAlert[]>([
     {
@@ -249,9 +268,18 @@ export const EmergencyOperatorView: React.FC = () => {
 
         {/* Emergency Corridor Geofencing Controls */}
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="text-base font-bold text-white mb-4 flex items-center gap-2">
-            Emergency Highway Corridor Geofence Management
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-base font-bold text-white flex items-center gap-2">
+              Emergency Highway Corridor Geofence Management
+            </h3>
+            {corridorETR && (
+              <span className="inline-flex items-center space-x-1.5 px-2.5 py-1 rounded-lg bg-sky-950 border border-sky-800 text-sky-300 text-[11px] font-mono">
+                <Clock className="w-3.5 h-3.5 text-sky-400" />
+                <span>ML Clearance ETR: {corridorETR.estHours}h ({corridorETR.lower}h–{corridorETR.upper}h)</span>
+              </span>
+            )}
+          </div>
+
           <div className="space-y-3">
             {corridors.map((cor) => (
               <div key={cor.id} className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2">

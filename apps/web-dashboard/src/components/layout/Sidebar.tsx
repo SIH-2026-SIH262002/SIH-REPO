@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../../hooks/useAuth';
 import {
   LayoutDashboard,
   Navigation,
@@ -10,6 +11,7 @@ import {
   MessageSquare,
   Settings,
 } from 'lucide-react';
+import { UserRole } from '../../types/auth';
 
 interface SidebarProps {
   activeTab: string;
@@ -17,25 +19,31 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ activeTab, onTabChange }) => {
-  const navItems = [
-    { id: 'dashboard', label: 'GIS Command Map', icon: LayoutDashboard },
-    { id: 'route-planner', label: 'AI Route Planner', icon: Navigation },
-    { id: 'risk', label: 'ML Risk Intelligence', icon: ShieldAlert },
-    { id: 'sos', label: 'Emergency SOS Center', icon: Siren },
-    { id: 'field', label: 'Field Incident Reports', icon: Camera },
-    { id: 'vehicles', label: 'Vehicle Telemetry', icon: Truck },
-    { id: 'shipments', label: 'Essential Logistics', icon: Package },
-    { id: 'notifications', label: 'Notifications Outbox', icon: MessageSquare },
-    { id: 'settings', label: 'Settings & i18n', icon: Settings },
+  const { user } = useAuth();
+  const role: UserRole = user?.role || 'LOGISTICS_OPERATOR';
+
+  const allNavItems = [
+    { id: 'dashboard', label: 'GIS Command Map', icon: LayoutDashboard, roles: ['ADMIN', 'LOGISTICS_OPERATOR', 'EMERGENCY_OPERATOR', 'FIELD_OFFICER', 'DRIVER'] },
+    { id: 'route-planner', label: 'AI Route Planner', icon: Navigation, roles: ['ADMIN', 'LOGISTICS_OPERATOR', 'FIELD_OFFICER', 'DRIVER'] },
+    { id: 'risk', label: 'ML Risk Intelligence', icon: ShieldAlert, roles: ['ADMIN', 'LOGISTICS_OPERATOR', 'EMERGENCY_OPERATOR', 'FIELD_OFFICER'] },
+    { id: 'sos', label: 'Emergency SOS Center', icon: Siren, roles: ['ADMIN', 'EMERGENCY_OPERATOR', 'FIELD_OFFICER', 'DRIVER'] },
+    { id: 'field', label: 'Field Incident Reports', icon: Camera, roles: ['ADMIN', 'LOGISTICS_OPERATOR', 'EMERGENCY_OPERATOR', 'FIELD_OFFICER'] },
+    { id: 'vehicles', label: 'Vehicle Telemetry', icon: Truck, roles: ['ADMIN', 'LOGISTICS_OPERATOR', 'EMERGENCY_OPERATOR', 'DRIVER'] },
+    { id: 'shipments', label: 'Essential Logistics', icon: Package, roles: ['ADMIN', 'LOGISTICS_OPERATOR', 'DRIVER'] },
+    { id: 'notifications', label: 'Notifications Outbox', icon: MessageSquare, roles: ['ADMIN', 'LOGISTICS_OPERATOR', 'EMERGENCY_OPERATOR', 'DRIVER'] },
+    { id: 'settings', label: 'Settings & i18n', icon: Settings, roles: ['ADMIN', 'LOGISTICS_OPERATOR', 'EMERGENCY_OPERATOR', 'FIELD_OFFICER'] },
   ];
+
+  const permittedNavItems = allNavItems.filter((item) => item.roles.includes(role));
 
   return (
     <aside className="w-60 bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between py-4 shrink-0 shadow-sm transition-colors duration-200">
       <div className="space-y-1 px-3">
-        <div className="px-3 pb-2 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-          Command Modules
+        <div className="px-3 pb-2 text-[10px] font-extrabold text-slate-400 dark:text-slate-500 uppercase tracking-widest flex items-center justify-between">
+          <span>Command Modules</span>
+          <span className="text-[9px] font-mono text-emerald-500 font-bold">{role}</span>
         </div>
-        {navItems.map((item) => {
+        {permittedNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;
           return (

@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.services import simulation_service, notify_service, vehicle_service
-from app.routers import sensors, risk, routes, sos, reports, alerts, dashboard, vehicles, notify, i18n
+from app.routers import sensors, risk, routes, sos, reports, alerts, dashboard, vehicles, notify, i18n, intelligence
 from app import ws
 
 app = FastAPI(
@@ -42,6 +42,7 @@ app.include_router(dashboard.router)
 app.include_router(vehicles.router)
 app.include_router(notify.router)
 app.include_router(i18n.router)
+app.include_router(intelligence.router)
 app.include_router(ws.router)
 
 _background_tasks: list[asyncio.Task] = []

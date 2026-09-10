@@ -3,7 +3,6 @@ import { useAuth } from '../hooks/useAuth';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { CommandHeader } from '../components/layout/CommandHeader';
 import { Sidebar } from '../components/layout/Sidebar';
-import { RoleSwitcherBar } from '../components/layout/RoleSwitcherBar';
 import { NERMap, MapSensorNode, MapVehicle } from '../components/map/NERMap';
 import { AIRoutePlannerView } from '../components/views/AIRoutePlannerView';
 import { MLRiskPlaygroundView } from '../components/views/MLRiskPlaygroundView';
@@ -13,11 +12,20 @@ import { VehiclesView } from '../components/views/VehiclesView';
 import { ShipmentsView } from '../components/views/ShipmentsView';
 import { NotificationsOutboxView } from '../components/views/NotificationsOutboxView';
 import { SettingsView } from '../components/views/SettingsView';
+
+// Role Specific Dashboard Views
 import { AdminDashboardView } from '../components/dashboard/roles/AdminDashboardView';
 import { LogisticsOperatorView } from '../components/dashboard/roles/LogisticsOperatorView';
 import { EmergencyOperatorView } from '../components/dashboard/roles/EmergencyOperatorView';
 import { FieldOfficerDashboardView } from '../components/dashboard/roles/FieldOfficerDashboardView';
 import { DriverDashboardView } from '../components/dashboard/roles/DriverDashboardView';
+
+// Operational Intelligence Components for Logistics Operator Command Center
+import { OperationalToolbar } from '../components/dashboard/OperationalToolbar';
+import { SupplyGapIntelligencePanel } from '../components/dashboard/SupplyGapIntelligencePanel';
+import { AIReasoningPanel } from '../components/dashboard/AIReasoningPanel';
+import { RecoveryPredictionCard } from '../components/dashboard/RecoveryPredictionCard';
+
 import { apiService } from '../services/apiService';
 import { voiceService } from '../services/voiceService';
 import { exportUtils } from '../utils/exportUtils';
@@ -28,16 +36,11 @@ import { UserRole } from '../types/auth';
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [activeRole, setActiveRole] = useState<UserRole>((user?.role as UserRole) || 'LOGISTICS_OPERATOR');
   const [lang, setLang] = useState('EN');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
 
-  // Sync user role if user logs in as a specific role
-  useEffect(() => {
-    if (user?.role) {
-      setActiveRole(user.role as UserRole);
-    }
-  }, [user]);
+  // Authoritative Role from Backend Identity Context
+  const activeRole: UserRole = user?.role || 'LOGISTICS_OPERATOR';
 
   // Live WebSocket Connection
   const { isConnected, lastEvent } = useWebSocket();
@@ -106,11 +109,8 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col transition-colors duration-200">
-      {/* Top Header */}
+      {/* Top Header with Read-Only Informational Identity Context */}
       <CommandHeader lang={lang} onLanguageChange={setLang} />
-
-      {/* Role Switcher Floating Bar */}
-      <RoleSwitcherBar activeRole={activeRole} onRoleChange={setActiveRole} />
 
       {/* Action Utility Subheader Bar */}
       <div className="bg-slate-900 border-b border-slate-800 px-6 py-2 flex items-center justify-between text-xs">
@@ -152,16 +152,33 @@ export const DashboardPage: React.FC = () => {
 
       {/* Main Workspace Layout */}
       <div className="flex-1 flex overflow-hidden max-w-[1920px] w-full mx-auto">
-        {/* Navigation Sidebar */}
+        {/* Role-Aware Navigation Sidebar */}
         <Sidebar activeTab={activeTab} onTabChange={setActiveTab} />
 
         {/* Primary Content Module Surface */}
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              {/* Dynamic Role Dashboard View */}
+              {/* Authoritative Role Dashboard View */}
               {activeRole === 'ADMIN' && <AdminDashboardView />}
-              {activeRole === 'LOGISTICS_OPERATOR' && <LogisticsOperatorView />}
+
+              {activeRole === 'LOGISTICS_OPERATOR' && (
+                <div className="space-y-6">
+                  {/* Logistics Operational Command Center Workflow */}
+                  <OperationalToolbar />
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                      <LogisticsOperatorView />
+                    </div>
+                    <div className="space-y-6">
+                      <SupplyGapIntelligencePanel />
+                      <AIReasoningPanel />
+                      <RecoveryPredictionCard />
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {activeRole === 'EMERGENCY_OPERATOR' && <EmergencyOperatorView />}
               {activeRole === 'FIELD_OFFICER' && <FieldOfficerDashboardView />}
               {activeRole === 'DRIVER' && <DriverDashboardView />}

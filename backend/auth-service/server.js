@@ -18,10 +18,21 @@ app.use(express.json());
 
 const dbAdapter = new SqliteStorageAdapter();
 
+const normalizeRole = (inputRole) => {
+    if (!inputRole) return 'FIELD_OFFICER';
+    const upper = String(inputRole).toUpperCase();
+    if (upper === 'SUPER_ADMIN') return 'ADMIN';
+    if (upper === 'DISTRICT_AUTHORITY') return 'EMERGENCY_OPERATOR';
+    const allowed = ['ADMIN', 'EMERGENCY_OPERATOR', 'LOGISTICS_OPERATOR', 'FIELD_OFFICER', 'DRIVER'];
+    if (allowed.includes(upper)) return upper;
+    return 'FIELD_OFFICER';
+};
+
 const claimsResolver = async ({ userId, sessionId, context }) => {
     const user = await dbAdapter.findUserById(userId);
     const meta = user?.metadata || {};
-    const role = meta.role || 'FIELD_OFFICER';
+    const rawRole = meta.role || 'FIELD_OFFICER';
+    const role = normalizeRole(rawRole);
     return {
         roles: [role],
         role: role,
@@ -36,13 +47,12 @@ const claimsResolver = async ({ userId, sessionId, context }) => {
 
 const policyResolver = async ({ policy, claims, context }) => {
     if (!claims || !claims.role) return false;
-    const role = claims.role;
-    if (policy === 'SUPER_ADMIN') return role === 'SUPER_ADMIN';
-    if (policy === 'ADMIN') return role === 'SUPER_ADMIN' || role === 'ADMIN';
-    if (policy === 'DISTRICT_AUTHORITY') return ['SUPER_ADMIN', 'ADMIN', 'DISTRICT_AUTHORITY'].includes(role);
-    if (policy === 'LOGISTICS_OPERATOR') return ['SUPER_ADMIN', 'ADMIN', 'LOGISTICS_OPERATOR'].includes(role);
-    if (policy === 'FIELD_OFFICER') return ['SUPER_ADMIN', 'ADMIN', 'FIELD_OFFICER'].includes(role);
-    if (policy === 'DRIVER') return ['SUPER_ADMIN', 'ADMIN', 'DRIVER'].includes(role);
+    const role = normalizeRole(claims.role);
+    if (policy === 'ADMIN' || policy === 'SUPER_ADMIN') return role === 'ADMIN';
+    if (policy === 'EMERGENCY_OPERATOR' || policy === 'DISTRICT_AUTHORITY') return role === 'ADMIN' || role === 'EMERGENCY_OPERATOR';
+    if (policy === 'LOGISTICS_OPERATOR') return role === 'ADMIN' || role === 'LOGISTICS_OPERATOR';
+    if (policy === 'FIELD_OFFICER') return role === 'ADMIN' || role === 'FIELD_OFFICER';
+    if (policy === 'DRIVER') return role === 'ADMIN' || role === 'DRIVER';
     return true;
 };
 

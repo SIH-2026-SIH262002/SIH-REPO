@@ -82,4 +82,23 @@ public enum UserRole {
     public Set<Permission> getPermissions() {
         return permissions;
     }
+
+    public static UserRole fromString(String text) {
+        if (text == null || text.trim().isEmpty()) {
+            return FIELD_OFFICER;
+        }
+        String clean = text.trim().toUpperCase();
+        if ("SUPER_ADMIN".equals(clean)) {
+            return ADMIN;
+        }
+        if ("DISTRICT_AUTHORITY".equals(clean)) {
+            return EMERGENCY_OPERATOR;
+        }
+        for (UserRole role : UserRole.values()) {
+            if (role.name().equalsIgnoreCase(clean)) {
+                return role;
+            }
+        }
+        return FIELD_OFFICER;
+    }
 }

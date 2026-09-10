@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Truck, PackageCheck, Route, AlertCircle, CheckCircle2, Clock, MapPin, ShieldAlert, ArrowRight, FileCheck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Truck, PackageCheck, Route, AlertCircle, CheckCircle2, Clock, MapPin, ShieldAlert, ArrowRight, FileCheck, ThermometerSnowflake } from 'lucide-react';
+import { apiService } from '../../../services/apiService';
 
 interface FleetVehicle {
   id: string;
@@ -43,7 +44,28 @@ interface DeliveryProof {
   timestamp: string;
 }
 
+interface ThermalBudget {
+  shipmentId: string;
+  cargoType: string;
+  targetTempCelsius: number;
+  currentTempCelsius: number;
+  ambientTempCelsius: number;
+  safeHoursRemaining: number;
+  status: string;
+}
+
 export const LogisticsOperatorView: React.FC = () => {
+  // Thermal Budget State (Connected Backend Feature)
+  const [thermalBudget, setThermalBudget] = useState<ThermalBudget | null>(null);
+
+  useEffect(() => {
+    const fetchThermal = async () => {
+      const data = await apiService.getThermalBudget('SHIP-SILCHAR-08');
+      setThermalBudget(data);
+    };
+    fetchThermal();
+  }, []);
+
   // 1. Fleet Vehicles
   const [fleet, setFleet] = useState<FleetVehicle[]>([
     { id: 'V-01', code: 'NER-07', driver: 'Raju Boro', origin: 'Guwahati Hub', destination: 'Silchar Civil Hospital', cargo: '2.5T Medical Supplies & Oxygen', speed: '48 km/h', fuel: 76, eta: '45 mins', status: 'ON_TRACK' },
@@ -100,7 +122,6 @@ export const LogisticsOperatorView: React.FC = () => {
     setReroutes((prev) =>
       prev.map((r) => (r.id === id ? { ...r, status: 'APPROVED' } : r))
     );
-    // Also update vehicle state
     setFleet((prev) =>
       prev.map((v) => (v.code === 'NER-02' ? { ...v, status: 'ON_TRACK', speed: '35 km/h', eta: '1 hr 15 mins' } : v))
     );
@@ -133,12 +154,19 @@ export const LogisticsOperatorView: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold">
-            <PackageCheck className="w-4 h-4" />
-            Supply Chain Status: Active (4 Convoys)
-          </span>
-        </div>
+
+        {/* Cold-Chain Thermal Budget Decay Status Indicator */}
+        {thermalBudget && (
+          <div className="flex items-center space-x-2 bg-indigo-950/80 border border-indigo-700/50 px-3 py-1.5 rounded-xl text-xs">
+            <ThermometerSnowflake className="w-4 h-4 text-cyan-400 animate-pulse" />
+            <div>
+              <div className="font-bold text-white text-[11px]">Cold-Chain Thermal Budget</div>
+              <div className="text-[10px] text-cyan-300 font-mono">
+                {thermalBudget.safeHoursRemaining}h Safe (@ {thermalBudget.currentTempCelsius}°C / Ambient {thermalBudget.ambientTempCelsius}°C)
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Convoy Fleet Tracking Grid */}

@@ -1,20 +1,35 @@
-import React, { useState } from 'react';
-import { Compass, AlertTriangle, Radio, ShieldAlert, CheckCircle2, MapPin, Truck, Navigation, Volume2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Compass, AlertTriangle, Radio, ShieldAlert, CheckCircle2, MapPin, Truck, Navigation, Globe } from 'lucide-react';
+import { apiService } from '../../../services/apiService';
 
 export const DriverDashboardView: React.FC = () => {
-  // 1. Transit Status State
+  // Transit Status State
   const [transitState, setTransitState] = useState<'PICKED_UP' | 'IN_TRANSIT' | 'DELAYED_LANDSLIDE' | 'ARRIVED_DESTINATION'>('IN_TRANSIT');
 
-  // 2. Hazard Report Log State
+  // Hazard Report Log State
   const [reportedHazards, setReportedHazards] = useState<Array<{ type: string; timestamp: string; location: string }>>([
     { type: 'ROCKFALL', timestamp: '14:35:10', location: 'NH-27 Km 142 Haflong Pass' },
   ]);
 
-  // 3. SOS State
+  // SOS State
   const [sosActive, setSosActive] = useState(false);
   const [sosStatus, setSosStatus] = useState<'IDLE' | 'BROADCASTING' | 'RELAYED_MESH'>('IDLE');
 
-  // Action: Report En-Route Hazard (ROAD_HAZARD_FLAG_SELF / POST /api/mobile/driver/me/hazard)
+  // Multilingual Driver Warning State (Connected Backend Feature)
+  const [driverLang, setDriverLang] = useState<'AS' | 'BN' | 'HI' | 'MN' | 'MZ' | 'EN'>('AS');
+  const [warningText, setWarningText] = useState<string>('');
+
+  useEffect(() => {
+    const fetchI18n = async () => {
+      const trans = await apiService.getTranslations(driverLang);
+      if (trans?.hazard_warning) {
+        setWarningText(trans.hazard_warning);
+      }
+    };
+    fetchI18n();
+  }, [driverLang]);
+
+  // Action: Report En-Route Hazard (POST /api/mobile/driver/me/hazard)
   const handleReportHazard = (hazardType: string) => {
     const newHazard = {
       type: hazardType,
@@ -53,13 +68,33 @@ export const DriverDashboardView: React.FC = () => {
             </p>
           </div>
         </div>
-        <div className="flex items-center space-x-3">
-          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-semibold">
-            <Truck className="w-4 h-4" />
-            Assigned Vehicle: NER-07 (Raju Boro)
-          </span>
+
+        {/* Multilingual Driver Warning Language Toggle */}
+        <div className="flex items-center space-x-2 bg-slate-950 border border-slate-800 p-1.5 rounded-xl">
+          <Globe className="w-4 h-4 text-emerald-400 ml-1" />
+          {(['AS', 'BN', 'HI', 'MN', 'MZ', 'EN'] as const).map((l) => (
+            <button
+              key={l}
+              onClick={() => setDriverLang(l as any)}
+              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                driverLang === l
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              {l === 'AS' ? 'অসমীয়া' : l === 'BN' ? 'বাংলা' : l === 'HI' ? 'हिंदी' : l === 'MN' ? 'ꯃꯤꯇꯩ' : l === 'MZ' ? 'Mizo' : 'EN'}
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Multilingual Active Driver Warning Banner */}
+      {warningText && (
+        <div className="p-3.5 bg-amber-950/40 border border-amber-700/60 rounded-xl text-amber-300 text-xs font-semibold flex items-center space-x-3">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0" />
+          <span>{warningText}</span>
+        </div>
+      )}
 
       {/* Convoy Telematics & Shipment Card */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">

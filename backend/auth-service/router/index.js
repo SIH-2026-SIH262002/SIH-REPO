@@ -71,6 +71,17 @@ module.exports = function createRouter(options = {}) {
     const { externalAuthResolver } = options;
     const router = express.Router();
 
+    // --- Helper: Role Normalization ---
+    const normalizeCanonicalRole = (inputRole) => {
+        if (!inputRole) return 'FIELD_OFFICER';
+        const upper = String(inputRole).toUpperCase();
+        if (upper === 'SUPER_ADMIN') return 'ADMIN';
+        if (upper === 'DISTRICT_AUTHORITY') return 'EMERGENCY_OPERATOR';
+        const allowed = ['ADMIN', 'EMERGENCY_OPERATOR', 'LOGISTICS_OPERATOR', 'FIELD_OFFICER', 'DRIVER'];
+        if (allowed.includes(upper)) return upper;
+        return 'FIELD_OFFICER';
+    };
+
     // --- Register ---
     router.post('/register', async (req, res) => {
         try {
@@ -81,11 +92,23 @@ module.exports = function createRouter(options = {}) {
                 return res.status(400).json({ error: 'Email/Phone identifier and password required' });
             }
 
+            let canonicalRole = normalizeCanonicalRole(role);
+            // Phase 8 Registration Security: Unauthenticated self-registration cannot claim privileged ADMIN or EMERGENCY_OPERATOR roles
+            const PRIVILEGED_ROLES = ['ADMIN', 'EMERGENCY_OPERATOR'];
+            if (PRIVILEGED_ROLES.includes(canonicalRole)) {
+                const authHeader = req.headers.authorization;
+                const isCallerAdmin = authHeader && (req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN');
+                if (!isCallerAdmin) {
+                    // Safe fallback for unauthenticated registration trying to claim privileged role
+                    canonicalRole = 'FIELD_OFFICER';
+                }
+            }
+
             const combinedMetadata = {
                 fullName: fullName || '',
                 email: email || resolvedIdentifier,
                 phone: phone || '',
-                role: role || 'FIELD_OFFICER',
+                role: canonicalRole,
                 organization: organization || '',
                 district: district || '',
                 ...metadata
