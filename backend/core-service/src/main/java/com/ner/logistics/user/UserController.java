@@ -25,6 +25,46 @@ public class UserController {
         return ResponseEntity.ok(userRepository.findAll());
     }
 
+    @PostMapping
+    @PreAuthorize("hasAuthority('USER_CREATE') or hasAuthority('USER_MANAGE')")
+    public ResponseEntity<?> createUser(@RequestBody UserProvisionDto dto, @AuthenticationPrincipal User actor) {
+        if (userRepository.existsByEmail(dto.getEmail())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "User with this email already exists."));
+        }
+        if (userRepository.existsByUsername(dto.getUsername())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Username is already taken."));
+        }
+
+        UserRole role = UserRole.fromString(dto.getRole());
+
+        User user = User.builder()
+                .username(dto.getUsername())
+                .email(dto.getEmail())
+                .fullName(dto.getFullName())
+                .phoneNumber(dto.getPhoneNumber())
+                .district(dto.getDistrict())
+                .role(role)
+                .status(UserAccountStatus.ACTIVE)
+                .build();
+
+        User saved = userRepository.save(user);
+
+        auditService.logDetailedEvent(
+                actor != null ? actor.getUsername() : "ADMIN",
+                actor != null ? actor.getRole().name() : "ADMIN",
+                "USER_PROVISIONED",
+                "User",
+                saved.getId().toString(),
+                "NONE",
+                saved.getRole().name(),
+                "Admin provisioned new operational account: " + saved.getEmail() + " in district " + saved.getDistrict(),
+                null,
+                "SUCCESS"
+        );
+
+        return ResponseEntity.ok(saved);
+    }
+
     @PutMapping("/{id}/role")
     @PreAuthorize("hasAuthority('ROLE_MANAGE')")
     public ResponseEntity<?> updateUserRole(@PathVariable Long id,
@@ -61,6 +101,9 @@ public class UserController {
     public ResponseEntity<?> suspendUser(@PathVariable Long id,
                                          @RequestBody UserStatusChangeDto dto,
                                          @AuthenticationPrincipal User actor) {
+        if (actor != null && actor.getId() != null && actor.getId().equals(id)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Admin Self-Protection Active: You cannot suspend or deactivate your own account."));
+        }
         if (dto.getJustificationReason() == null || dto.getJustificationReason().trim().isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Mandatory justification reason is required for account suspension."));
         }
@@ -147,6 +190,16 @@ public class UserController {
 
             return ResponseEntity.ok(user);
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @Data
+    public static class UserProvisionDto {
+        private String username;
+        private String email;
+        private String fullName;
+        private String phoneNumber;
+        private String district;
+        private String role;
     }
 
     @Data

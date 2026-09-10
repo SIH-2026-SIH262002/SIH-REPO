@@ -38,9 +38,6 @@ public class SecurityConfig {
                                 "/api/auth/**",
                                 "/api/health",
                                 "/ws/**",
-                                "/api/sos/relay",
-                                "/api/sos/acks",
-                                "/api/tracking/telematics/**",
                                 "/api/i18n/**",
                                 "/uploads/**"
                         ).permitAll()
