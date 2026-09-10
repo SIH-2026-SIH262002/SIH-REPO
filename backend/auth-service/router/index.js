@@ -92,17 +92,17 @@ module.exports = function createRouter(options = {}) {
                 return res.status(400).json({ error: 'Email/Phone identifier and password required' });
             }
 
-            let canonicalRole = normalizeCanonicalRole(role);
-            // Phase 8 Registration Security: Unauthenticated self-registration cannot claim privileged ADMIN or EMERGENCY_OPERATOR roles
-            const PRIVILEGED_ROLES = ['ADMIN', 'EMERGENCY_OPERATOR'];
-            if (PRIVILEGED_ROLES.includes(canonicalRole)) {
-                const authHeader = req.headers.authorization;
-                const isCallerAdmin = authHeader && (req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN');
-                if (!isCallerAdmin) {
-                    // Safe fallback for unauthenticated registration trying to claim privileged role
-                    canonicalRole = 'FIELD_OFFICER';
-                }
+            // Closed System Security Enforcement: Public self-registration is strictly disabled.
+            // Only authenticated Administrators can provision new accounts via this endpoint.
+            const authHeader = req.headers.authorization;
+            const isCallerAdmin = authHeader && (req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN');
+            if (!isCallerAdmin) {
+                return res.status(403).json({
+                    error: 'Access Denied: Public self-registration is disabled. Account provisioning requires Administrator authorization.'
+                });
             }
+
+            let canonicalRole = normalizeCanonicalRole(role);
 
             const combinedMetadata = {
                 fullName: fullName || '',

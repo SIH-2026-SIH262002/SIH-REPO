@@ -206,7 +206,7 @@ authSystem.onPasswordResetCompleted(() => { /* ... */ });
 
 | Method | Endpoint | Body | Response |
 |--------|----------|------|----------|
-| POST | `/auth/register` | `{ email?, identifier, password, metadata? }` | `{ userId }` |
+| POST | `/auth/register` (Admin Only) | `{ email?, identifier, password, metadata? }` | `{ userId }` (Public disabled; requires Admin JWT) |
 | POST | `/auth/login` | `{ email?, identifier, password }` | `{ accessToken, refreshToken, sessionId, expiresIn }` |
 | POST | `/auth/refresh` | `{ refreshToken, sessionId }` | `{ accessToken, refreshToken, sessionId }` |
 | POST | `/auth/logout` | `{ sessionId }` | `{ message }` |
