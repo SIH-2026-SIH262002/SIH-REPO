@@ -143,7 +143,21 @@ def login(payload: LoginInput):
     return generate_tokens(user)
 
 @router.post("/register")
-def register(payload: RegisterInput):
+def register(payload: RegisterInput, authorization: str = Header(None)):
+    # Closed System Security Enforcement: Public self-registration is strictly disabled.
+    # Only authenticated Administrators can provision new accounts via this endpoint.
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(401, "Authentication required: Public self-registration is disabled.")
+    
+    token = authorization.split(" ")[1]
+    try:
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        caller_role = decoded.get("role", "").upper()
+        if caller_role not in ["ADMIN", "SUPER_ADMIN"]:
+            raise HTTPException(403, "Access Denied: Only Administrators can provision user accounts.")
+    except jwt.PyJWTError:
+        raise HTTPException(403, "Invalid administrator authorization token.")
+
     if payload.email.lower() in USERS_DB:
         raise HTTPException(400, "User with this email already exists")
     
@@ -156,7 +170,8 @@ def register(payload: RegisterInput):
         "role": payload.role,
         "district": payload.district,
         "organization": payload.organization,
-        "password": payload.password
+        "password": payload.password,
+        "status": "ACTIVE"
     }
     USERS_DB[user["email"]] = user
     return {"message": "User registered successfully", "user": user}
@@ -194,6 +209,11 @@ def get_me(authorization: str | None = Header(None)):
     token = authorization.split(" ")[1]
     try:
         payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        email = payload.get("email", "").lower()
+        if email in USERS_DB:
+            user_obj = USERS_DB[email]
+            if user_obj.get("status") in ["SUSPENDED", "DEACTIVATED"]:
+                raise HTTPException(403, "Account is suspended or deactivated. Contact system administrator.")
         return {
             "userId": payload.get("sub"),
             "fullName": payload.get("fullName", "User"),
@@ -203,5 +223,7 @@ def get_me(authorization: str | None = Header(None)):
             "district": payload.get("district", ""),
             "organization": payload.get("organization", "")
         }
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(401, f"Invalid or expired access token: {str(e)}")
