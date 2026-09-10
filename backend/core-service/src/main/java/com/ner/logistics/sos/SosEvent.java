@@ -35,6 +35,8 @@ public class SosEvent {
 
     private String emergencyType; // LANDSLIDE_TRAPPED, VEHICLE_BREAKDOWN, MEDICAL_EMERGENCY
 
+    private String district;
+
     private String message;
 
     private String status; // TRIGGERED, RECEIVED, ACKNOWLEDGED, RESPONDER_ASSIGNED, RESOLVED

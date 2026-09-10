@@ -1,5 +1,7 @@
 package com.ner.logistics.sos;
 
+import com.ner.logistics.user.User;
+import com.ner.logistics.user.UserRole;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;

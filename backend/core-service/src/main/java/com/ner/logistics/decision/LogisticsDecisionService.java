@@ -2,10 +2,6 @@ package com.ner.logistics.decision;
 
 import com.ner.logistics.incident.Incident;
 import com.ner.logistics.incident.IncidentRepository;
-import com.ner.logistics.shipment.Shipment;
-import com.ner.logistics.shipment.ShipmentRepository;
-import com.ner.logistics.vehicle.Vehicle;
-import com.ner.logistics.vehicle.VehicleRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -21,8 +17,6 @@ import java.util.List;
 public class LogisticsDecisionService {
 
     private final IncidentRepository incidentRepository;
-    private final ShipmentRepository shipmentRepository;
-    private final VehicleRepository vehicleRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
     public List<DecisionRecommendationDto> getRecommendations() {
