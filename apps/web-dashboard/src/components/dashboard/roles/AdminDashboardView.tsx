@@ -71,8 +71,54 @@ export const AdminDashboardView: React.FC = () => {
     { id: 'LOG-878', timestamp: '14:15:40', actor: 'driver.raju', role: 'DRIVER', action: 'En-route Hazard Flagged: ROCKFALL_NH27', status: 'SUCCESS', ip: '172.16.4.12' },
   ]);
 
-  // Toggle user state
+  // Modal state for Admin-Controlled User Provisioning
+  const [isProvisionModalOpen, setIsProvisionModalOpen] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newUserEmail, setNewUserEmail] = useState('');
+  const [newUserRole, setNewUserRole] = useState('FIELD_OFFICER');
+  const [newUserDistrict, setNewUserDistrict] = useState('Guwahati (Kamrup)');
+
+  const handleCreateUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserName.trim() || !newUserEmail.trim()) return;
+
+    const newId = `USR-0${users.length + 1}`;
+    const newUser: MockUser = {
+      id: newId,
+      name: newUserName.trim(),
+      email: newUserEmail.trim(),
+      role: newUserRole,
+      district: newUserDistrict,
+      status: 'ACTIVE',
+      lastActive: 'Just created',
+    };
+
+    setUsers((prev) => [newUser, ...prev]);
+
+    const newLog: AuditLog = {
+      id: `LOG-${Math.floor(100 + Math.random() * 900)}`,
+      timestamp: new Date().toLocaleTimeString(),
+      actor: 'admin.current',
+      role: 'ADMIN',
+      action: `PROVISIONED_USER: Created account ${newId} (${newUser.name}) as ${newUser.role} in ${newUser.district}`,
+      status: 'SUCCESS',
+      ip: '10.240.0.1',
+    };
+    setAuditLogs((prevLogs) => [newLog, ...prevLogs]);
+
+    setNewUserName('');
+    setNewUserEmail('');
+    setIsProvisionModalOpen(false);
+  };
+
+  // Toggle user state with Admin Self-Protection
   const handleToggleUserStatus = (userId: string, targetStatus: 'ACTIVE' | 'SUSPENDED' | 'DEACTIVATED') => {
+    const targetUser = users.find((u) => u.id === userId);
+    if (targetUser && targetUser.role === 'ADMIN' && (targetStatus === 'SUSPENDED' || targetStatus === 'DEACTIVATED')) {
+      alert('Admin Self-Protection Active: You cannot suspend or deactivate an Administrator account.');
+      return;
+    }
+
     setUsers((prev) =>
       prev.map((u) => {
         if (u.id === userId) {
@@ -303,16 +349,112 @@ export const AdminDashboardView: React.FC = () => {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              User Access Governance & Soft Account States
+              User Access Governance & Administrative Provisioning
             </h3>
             <p className="text-xs text-slate-400">
-              Control platform personnel lifecycle. Soft states (`ACTIVE`, `SUSPENDED`, `DEACTIVATED`) restrict API permissions without hard deleting historical telemetry logs.
+              Control platform personnel lifecycle. Selectively provision operational accounts and manage account states (`ACTIVE`, `SUSPENDED`, `DEACTIVATED`).
             </p>
           </div>
-          <div className="text-xs text-slate-400 font-mono">
-            Total System Users: <strong className="text-white">{users.length}</strong>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={() => setIsProvisionModalOpen(true)}
+              className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-md transition flex items-center space-x-1.5"
+            >
+              <span>+ Provision Operational User</span>
+            </button>
+            <div className="text-xs text-slate-400 font-mono hidden md:block">
+              Total Users: <strong className="text-white">{users.length}</strong>
+            </div>
           </div>
         </div>
+
+        {/* User Provisioning Modal */}
+        {isProvisionModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-xs p-4">
+            <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-full max-w-lg shadow-2xl space-y-4">
+              <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                <h4 className="font-bold text-white text-base">Provision New Operational Account</h4>
+                <button
+                  onClick={() => setIsProvisionModalOpen(false)}
+                  className="text-slate-400 hover:text-white text-xs font-mono px-2 py-1 bg-slate-800 rounded-md"
+                >
+                  ✕ Close
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateUser} className="space-y-3 text-xs">
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">Personnel Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Officer T. Laskar"
+                    value={newUserName}
+                    onChange={(e) => setNewUserName(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-300 font-medium mb-1">Government Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. t.laskar@field.ner.gov.in"
+                    value={newUserEmail}
+                    onChange={(e) => setNewUserEmail(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-slate-300 font-medium mb-1">Assigned Operational Role *</label>
+                    <select
+                      value={newUserRole}
+                      onChange={(e) => setNewUserRole(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-purple-500"
+                    >
+                      <option value="FIELD_OFFICER">FIELD_OFFICER</option>
+                      <option value="LOGISTICS_OPERATOR">LOGISTICS_OPERATOR</option>
+                      <option value="EMERGENCY_OPERATOR">EMERGENCY_OPERATOR</option>
+                      <option value="DRIVER">DRIVER</option>
+                      <option value="ADMIN">ADMIN</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-slate-300 font-medium mb-1">Jurisdiction District *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Haflong (Dima Hasao)"
+                      value={newUserDistrict}
+                      onChange={(e) => setNewUserDistrict(e.target.value)}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg p-2.5 text-white focus:outline-none focus:border-purple-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="pt-3 flex justify-end space-x-2 border-t border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setIsProvisionModalOpen(false)}
+                    className="px-4 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-semibold shadow-md"
+                  >
+                    Confirm & Provision Account
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs text-slate-300">
