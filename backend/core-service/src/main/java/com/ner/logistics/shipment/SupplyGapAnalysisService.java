@@ -14,7 +14,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SupplyGapAnalysisService {
 
-    private final ShipmentRepository shipmentRepository;
     private final IncidentRepository incidentRepository;
 
     public List<SupplyGapDto> analyzeSupplyGaps() {
