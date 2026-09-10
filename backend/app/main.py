@@ -3,9 +3,13 @@ import os
 
 from dotenv import load_dotenv, find_dotenv
 
-# Load unified master .env file from project root
+# Load backend dedicated .env file
+backend_env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".env"))
 root_env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
-if os.path.exists(root_env_path):
+
+if os.path.exists(backend_env_path):
+    load_dotenv(backend_env_path, override=True)
+elif os.path.exists(root_env_path):
     load_dotenv(root_env_path, override=True)
 else:
     load_dotenv(find_dotenv(usecwd=True))
