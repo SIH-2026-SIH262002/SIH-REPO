@@ -13,3 +13,4 @@ requests
 twilio
 python-dotenv
 websockets
+pyjwt
