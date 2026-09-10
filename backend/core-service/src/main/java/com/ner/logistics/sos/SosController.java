@@ -26,6 +26,7 @@ public class SosController {
     }
 
     @PostMapping("/relay")
+    @PreAuthorize("hasAuthority('SOS_TRIGGER') or hasRole('ADMIN') or hasRole('EMERGENCY_OPERATOR') or hasRole('DRIVER')")
     public ResponseEntity<SosEvent> processRelayedSos(@Valid @RequestBody SosRelayRequestDto dto) {
         return ResponseEntity.ok(sosService.processRelayedSos(dto));
     }

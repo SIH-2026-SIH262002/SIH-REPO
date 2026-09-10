@@ -57,8 +57,8 @@ public class DeviceService {
     public boolean validateAndTouchDevice(String imei, String rawApiKey) {
         Optional<Device> optDevice = deviceRepository.findByImei(imei);
         if (optDevice.isEmpty()) {
-            log.warn("⚠️ Telematics Ingestion: Unregistered device IMEI={}", imei);
-            return true; 
+            log.error("❌ Telematics Ingestion REJECTED: Unregistered device IMEI={}", imei);
+            return false; 
         }
 
         Device device = optDevice.get();
