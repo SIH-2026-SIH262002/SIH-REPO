@@ -29,7 +29,7 @@ NER LogiSense is a dual-tier hybrid platform built for **Smart India Hackathon (
 
 It fuses telemetry from 18 geographical sensor nodes across 20 NER transit corridors. Continuous physical telemetry ($24\text{h}/72\text{h}$ rainfall, soil moisture $\%$, soil porosity index, slope angle, vibration intensity, temperature, humidity) is evaluated by a Gradient Boosted Decision Tree (GBDT) Machine Learning model (XGBoost/LightGBM) trained on 4,000 soil physics samples. The ML model outputs a continuous landslide risk score ($0–100$) and occurrence probability.
 
-The risk score dynamically updates edge weights on a NetworkX road graph. When hazard scores cross critical thresholds ($\ge 70$), the NetworkX solver applies Dijkstra/k-shortest-path algorithms with non-linear penalty multipliers to automatically detour supply trucks. The operational demo runs on FastAPI + React 19 + Express Auth + Flutter, while an enterprise Spring Boot 3.2 Java core with PostGIS, Kafka, and Redis is pre-architected for production deployment.
+The risk score dynamically updates edge weights on a NetworkX road graph. When hazard scores cross critical thresholds ($\ge 70$), the NetworkX solver applies Dijkstra/k-shortest-path algorithms with non-linear penalty multipliers to automatically detour supply trucks. The operational demo runs on FastAPI + React 19 + Express Auth + React Native (Expo Router), while an enterprise Spring Boot 3.2 Java core with PostGIS, Kafka, and Redis is pre-architected for production deployment.
 
 ## C. Technical Architecture Level Explanation
 
@@ -53,7 +53,7 @@ The risk score dynamically updates edge weights on a NetworkX road graph. When h
          ▲                                                                               │                                       │
          │                                                                               ▼                                       ▼
 ┌─────────────────────────┐                                                     ┌─────────────────────────┐             ┌─────────────────────────┐
-│   Flutter Mobile App    │                                                     │   ML Inference Engine   │             │   External Integrations │
+│ React Native Mobile App │                                                     │   ML Inference Engine   │             │   External Integrations │
 │   (apps/mobile-app)     │                                                     │   (ml/)                 │             │                         │
 │                         │                                                     │                         │             │ • OpenWeatherMap API    │
 │ • Driver SOS Radar      │────────────────────────────────────────────────────►│ • XGBoost / LightGBM    │             │ • Twilio WhatsApp / SMS │
@@ -86,11 +86,11 @@ The risk score dynamically updates edge weights on a NetworkX road graph. When h
     * [`src/components/map/NERMap.tsx`](<file:///e:/My%20projects/SIH-REPO/apps/web-dashboard/src/components/map/NERMap.tsx>): Leaflet map rendering sensor pins, road polylines, vehicle markers, and incident overlays. *(Actively Used)*
     * [`src/services/voiceService.ts`](<file:///e:/My%20projects/SIH-REPO/apps/web-dashboard/src/services/voiceService.ts>): Web Speech API synthesizer for English, Hindi, Assamese voice alerts. *(Actively Used)*
     * [`src/utils/exportUtils.ts`](<file:///e:/My%20projects/SIH-REPO/apps/web-dashboard/src/utils/exportUtils.ts>): Executive NDMA PDF summary export generator using html2canvas & jsPDF. *(Actively Used)*
-  * [`apps/mobile-app/`](<file:///e:/My%20projects/SIH-REPO/apps/mobile-app>) *(Flutter Cross-Platform Application)*
+  * [`apps/mobile-app/`](<file:///e:/My%20projects/SIH-REPO/apps/mobile-app>) *(React Native + Expo Router Cross-Platform Application)*
 
-    * [`pubspec.yaml`](<file:///e:/My%20projects/SIH-REPO/apps/mobile-app/pubspec.yaml>): Flutter package dependencies (`http`, `sqflite`, `stomp_dart_client`, `connectivity_plus`).
-    * [`lib/main_driver.dart`](<file:///e:/My%20projects/SIH-REPO/apps/mobile-app/lib/main_driver.dart>): Entry point for Driver app.
-    * [`lib/main_field_officer.dart`](<file:///e:/My%20projects/SIH-REPO/apps/mobile-app/lib/main_field_officer.dart>): Entry point for Field Officer app. *(Infrastructure Ready)*
+    * [`package.json`](<file:///e:/My%20projects/SIH-REPO/apps/mobile-app/package.json>): React Native & Expo SDK 51 dependencies (`expo-router`, `react-native-maps`, `async-storage`, `secure-store`, `axios`).
+    * [`app/(auth)/login.tsx`](<file:///e:/My%20projects/SIH-REPO/apps/mobile-app/app/(auth)/login.tsx>): Mobile authentication screen for Drivers & Field Officers.
+    * [`app/(tabs)/`](<file:///e:/My%20projects/SIH-REPO/apps/mobile-app/app/(tabs)>): File-based tab routes (`index.tsx`, `map.tsx`, `sos.tsx`, `incidents.tsx`, `alerts.tsx`, `vehicles.tsx`, `risk.tsx`, `profile.tsx`). *(Actively Used)*
   * [`backend/app/`](<file:///e:/My%20projects/SIH-REPO/backend/app>) *(Python FastAPI Gateway & Real-Time Engine)*
 
     * [`main.py`](<file:///e:/My%20projects/SIH-REPO/backend/app/main.py>): FastAPI app, CORS configuration, static upload folder mounting, and background task launcher (simulation loop, vehicle motion tick, notification outbox flusher). *(Actively Used)*

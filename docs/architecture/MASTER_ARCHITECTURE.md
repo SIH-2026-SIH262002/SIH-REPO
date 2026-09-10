@@ -60,9 +60,11 @@ SIH-REPO/
 ├── simulate.bat                               # Windows one-click standalone presentation CLI launcher
 │
 ├── apps/
-│   ├── mobile-app/                            # Flutter mobile app structure for drivers & field officers
-│   │   ├── lib/                               # Mobile application source code
-│   │   └── pubspec.yaml                       # Flutter package specification
+│   ├── mobile-app/                            # React Native (Expo Router) mobile app for drivers & field officers
+│   │   ├── app/                               # Expo Router file-based routes ((auth), (tabs))
+│   │   ├── src/                               # Mobile UI components, contexts, themes, API clients & offline queue
+│   │   ├── android/                           # Android native project files & wrapper
+│   │   └── package.json                       # React Native dependencies (Expo SDK 51, React Native 0.74)
 │   └── web-dashboard/                         # Main React 19 + Vite Command Center Frontend
 │       ├── index.html                         # Entry HTML file
 │       ├── package.json                       # npm dependencies (React 19, Leaflet, TailwindCSS, Axios)
@@ -282,3 +284,4 @@ All future updates, refactorings, and feature additions MUST be appended to this
 | Date | Author | Description of Changes | Files Affected |
 |---|---|---|---|
 | **2026-09-07** | Antigravity AI | Initialized MASTER_ARCHITECTURE.md living document. Standardized frontend Light/Dark themes, FastAPI WebSocket stream, Java 21 Spring Boot core service, XGBoost/LightGBM ML models, and standalone CLI simulation controller (`simulate.bat`). | `MASTER_ARCHITECTURE.md`, `apps/web-dashboard/src/*`, `backend/app/*`, `backend/core-service/*`, `ml/train_model.py`, `simulate.bat` |
+| **2026-09-10** | Antigravity AI | Replaced Flutter mobile app with React Native Expo Router mobile app (`apps/mobile-app`), integrated auth & intelligence FastAPI routers, added User/SosEvent district fields in Java Core Service, fixed compiler issues, and unified 14-category environment configuration template. | `apps/mobile-app/*`, `backend/app/main.py`, `backend/app/routers/auth.py`, `backend/core-service/src/*`, `.env.example`, `backend/.env.example`, `apps/web-dashboard/.env.example`, `apps/mobile-app/.env.example` |
