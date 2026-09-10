@@ -1,9 +1,14 @@
 import asyncio
 import os
 
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+# Load unified master .env file from project root
+root_env_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".env"))
+if os.path.exists(root_env_path):
+    load_dotenv(root_env_path, override=True)
+else:
+    load_dotenv(find_dotenv(usecwd=True))
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
