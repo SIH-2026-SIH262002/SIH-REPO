@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.services import simulation_service, notify_service, vehicle_service
-from app.routers import sensors, risk, routes, sos, reports, alerts, dashboard, vehicles, notify, i18n
+from app.routers import sensors, risk, routes, sos, reports, alerts, dashboard, vehicles, notify, i18n, auth
 from app import ws
 
 app = FastAPI(
@@ -19,10 +19,10 @@ app = FastAPI(
     version="0.1.0",
 )
 
-origins = os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+origins = os.getenv("CORS_ORIGINS", "*").split(",")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in origins],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -32,6 +32,7 @@ UPLOAD_DIR = os.path.join(os.path.dirname(__file__), "..", "uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
+app.include_router(auth.router)
 app.include_router(sensors.router)
 app.include_router(risk.router)
 app.include_router(routes.router)
