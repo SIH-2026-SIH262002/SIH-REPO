@@ -3,10 +3,8 @@ package com.ner.logistics.auth;
 import com.ner.logistics.user.Permission;
 import com.ner.logistics.user.User;
 import com.ner.logistics.user.UserRepository;
-import com.ner.logistics.user.UserRole;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +21,6 @@ public class OtpService {
 
     private final UserRepository userRepository;
     private final JwtTokenProvider tokenProvider;
-    private final PasswordEncoder passwordEncoder;
 
     // Concurrent in-memory store for OTPs (Key: phoneNumber, Value: OTP code)
     private final Map<String, String> otpCache = new ConcurrentHashMap<>();
@@ -59,20 +56,10 @@ public class OtpService {
         if (userOpt.isPresent()) {
             user = userOpt.get();
         } else {
-            // Auto-register non-technical driver user
-            String cleanPhone = phone.replaceAll("[^0-9]", "");
-            String username = "driver_" + cleanPhone;
-            
-            user = User.builder()
-                    .username(username)
-                    .email(username + "@sih.gov.in")
-                    .password(passwordEncoder.encode("DriverOtp@2026"))
-                    .role(UserRole.DRIVER)
-                    .fullName("Convoy Driver (" + phone + ")")
-                    .phoneNumber(phone)
-                    .build();
-            user = userRepository.save(user);
-            log.info("👤 Auto-registered new Driver profile for phone number {}", phone);
+            log.error("❌ OTP Verification Rejected: Phone number {} is not provisioned", phone);
+            throw new org.springframework.security.access.AccessDeniedException(
+                "Access Denied: Phone number " + phone + " is not registered. Contact system administrator for account provisioning."
+            );
         }
 
         String jwtToken = tokenProvider.generateToken(user.getUsername(), user.getRole().name());

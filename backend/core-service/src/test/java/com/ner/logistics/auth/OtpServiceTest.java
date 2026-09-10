@@ -32,7 +32,7 @@ public class OtpServiceTest {
 
     @BeforeEach
     void setUp() {
-        otpService = new OtpService(userRepository, tokenProvider, passwordEncoder);
+        otpService = new OtpService(userRepository, tokenProvider);
     }
 
     @Test
