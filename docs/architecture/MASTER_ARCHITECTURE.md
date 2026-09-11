@@ -17,7 +17,11 @@
 6. [Machine Learning Engine (`ml/`)](#6-machine-learning-engine-ml)
 7. [Simulation Suite & Presentation Controllers](#7-simulation-suite--presentation-controllers)
 8. [Data Models & Geospatial Database Schema](#8-data-models--geospatial-database-schema)
-9. [Living Change Log](#9-living-change-log)
+9. [Roles, Permissions & Resource Scope](#9-roles-permissions--resource-scope)
+10. [Frontend Role Contract](#10-frontend-role-contract)
+11. [Operational Workflows](#11-operational-workflows)
+12. [Security Review & Future Hardening](#12-security-review--future-hardening)
+13. [Living Change Log](#13-living-change-log)
 
 ---
 
@@ -277,7 +281,106 @@ Built using **React 19, Vite, TypeScript, Leaflet, and Vanilla CSS Tokens**:
 
 ---
 
-## 9. Living Change Log
+## 9. Roles, Permissions & Resource Scope
+
+NER LogiSense uses five canonical operational roles. Legacy `SUPER_ADMIN` and
+`DISTRICT_AUTHORITY` values normalize to `ADMIN` and `EMERGENCY_OPERATOR`
+respectively; neither is a separate product role.
+
+| Role | Primary responsibility | Data scope |
+|---|---|---|
+| `ADMIN` | Identity, security, platform and ML governance | `GLOBAL` |
+| `EMERGENCY_OPERATOR` | SOS triage, incident verification and corridor closure | `DISTRICT` |
+| `LOGISTICS_OPERATOR` | Fleet, shipment, supply-gap and route operations | `FLEET` / `RESOURCE-SCOPED` |
+| `FIELD_OFFICER` | Assigned inspections and ground-truth evidence | `ASSIGNED` |
+| `DRIVER` | Assigned vehicle, shipment, navigation and SOS actions | `SELF` / `RESOURCE-SCOPED` |
+
+### Permission domains
+
+- **Identity**: `AUTH_LOGIN`, `AUTH_PASSWORD_RESET`, `USER_MANAGE`, `ROLE_MANAGE`, `AUDIT_LOG_VIEW`.
+- **Fleet and cargo**: `VEHICLE_VIEW`, `VEHICLE_MANAGE`, `SHIPMENT_VIEW`, `SHIPMENT_MANAGE`, `DELIVERY_STATUS_UPDATE`, `DELIVERY_CONFIRM`.
+- **Routing and intelligence**: `ROUTE_PLAN`, `ROUTE_APPROVE`, `MODEL_VERSION_VIEW`, `MODEL_DEPLOY`, `MODEL_ROLLBACK`.
+- **Incidents and SOS**: `INCIDENT_REPORT`, `INCIDENT_VERIFY`, `SOS_TRIGGER`, `SOS_ACKNOWLEDGE`, `SOS_DISPATCH`, `SOS_RESOLVE`.
+- **Field operations**: `FIELD_TASK_UPDATE`, `ROAD_HAZARD_FLAG_SELF`, `INCIDENT_FIELD_CONFIRM`.
+
+Authorization is evaluated in three layers: verify the JWT signature and expiry,
+check the granular permission, then enforce resource ownership or spatial scope.
+Examples include `vehicle.assigned_driver_id == jwt.sub`,
+`task.assigned_officer_id == jwt.sub`, `incident.district_id == jwt.district_id`,
+and `vehicle.fleet_id == jwt.assigned_fleet_id`. A failed scope check returns
+`403 Forbidden`, even when the caller has the correct broad role.
+
+High-risk actions such as SOS dispatch, corridor closure, manual risk override,
+delivery confirmation, model deployment or rollback, and user suspension require
+explicit confirmation plus an immutable audit record containing actor, target,
+timestamp, reason, and outcome.
+
+## 10. Frontend Role Contract
+
+The web dashboard and mobile app resolve the authenticated role through the auth
+context and protect navigation with route guards. The canonical default routes
+are `/admin`, `/emergency`, `/logistics`, `/field`, and `/driver`.
+
+- **Admin** sees identity management, audit logs, device health and ML governance.
+- **Emergency operators** see SOS radar, incident verification, corridor status and rescue resources.
+- **Logistics operators** see fleet telemetry, route planning, supply gaps and cold-chain status.
+- **Field officers** see assigned tasks, evidence upload and offline report synchronization.
+- **Drivers** see their vehicle, shipment, route, actionable hazards and SOS controls.
+
+The UI must expose only the five canonical roles. Drivers receive actionable
+warnings and assigned resources, not fleet-wide telemetry or model internals.
+Field reports may queue offline and synchronize when connectivity returns.
+
+## 11. Operational Workflows
+
+### Emergency SOS and rescue
+
+1. A driver triggers SOS with GPS, vehicle and cargo context.
+2. The emergency radar notifies the assigned emergency operator.
+3. A field officer may verify the physical hazard with geotagged evidence.
+4. The emergency operator can apply a logged severe override and close the corridor.
+5. NDRF, SDRF or BRO resources are dispatched, and the SOS is resolved after extraction.
+
+### Incident verification
+
+1. A sensor, driver or external signal identifies a possible blockage.
+2. A nearby field officer receives an inspection task.
+3. The officer submits observations and timestamped, geotagged evidence.
+4. An emergency operator verifies the incident and recalculates the impact chain.
+
+### AI route detour
+
+1. A logistics operator inspects the affected corridor and threatened shipments.
+2. The route engine compares alternate paths using risk, ETA, cargo criticality and thermal budget.
+3. The logistics operator approves the detour before it reaches the driver.
+4. The driver receives updated navigation and confirms delivery on arrival.
+
+### Closed-loop intelligence
+
+The intended operational loop is:
+
+`SENSE -> PREDICT -> CORROBORATE -> DECIDE -> ACT -> CONFIRM -> LEARN`
+
+Sensor and vehicle telemetry produce a risk recommendation; human operators retain
+authority for commercial reroutes and emergency closures; driver and field outcomes
+are recorded in `operational_outcome` for later model evaluation.
+
+## 12. Security Review & Future Hardening
+
+The architecture review identifies the following production hardening priorities:
+
+1. Specify BLE store-carry-forward packet format, TTL, deduplication and relay lineage.
+2. Reframe model validation around corridor disruption and improve sparse ground-truth labels.
+3. Persist prediction, decision and actual-outcome records for measurable feedback.
+4. Add write-behind telemetry buffering and circuit breakers for Kafka, Redis and WebSockets.
+5. Apply confidence decay and evidence fusion when human reports disagree with sensors.
+6. Keep contextual driver safety rules: voice or one-tap alerts while moving, full photo upload while parked.
+7. Enforce ABAC ownership checks on every resource endpoint, not only role checks.
+8. Formalize supply criticality using commodity, shelf life, deficit, population impact and transit time.
+9. Add monotonic server sequencing, conflict review and encrypted mobile offline storage.
+10. Use Redis spatial indexes and PostGIS indexes to reduce spatial-query pressure.
+
+## 13. Living Change Log
 
 All future updates, refactorings, and feature additions MUST be appended to this log:
 
