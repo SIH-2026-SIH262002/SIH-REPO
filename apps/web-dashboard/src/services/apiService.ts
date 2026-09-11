@@ -1,6 +1,11 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+const RAW_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+// Normalize so this file's endpoint paths (which omit '/api') resolve correctly
+// whether VITE_API_URL already includes the '/api' suffix or not.
+const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, '').endsWith('/api')
+  ? RAW_BASE_URL.replace(/\/+$/, '')
+  : `${RAW_BASE_URL.replace(/\/+$/, '')}/api`;
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -54,6 +59,11 @@ export const apiService = {
 
   getFeatureImportance: async () => {
     const response = await apiClient.get('/risk/feature-importance');
+    return response.data;
+  },
+
+  getModelInfo: async () => {
+    const response = await apiClient.get('/risk/model-info');
     return response.data;
   },
 

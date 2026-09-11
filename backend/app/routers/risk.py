@@ -31,3 +31,8 @@ def predict(payload: RiskInput):
 @router.get("/feature-importance")
 def importance():
     return ml_service.feature_importances()
+
+
+@router.get("/model-info")
+def model_info():
+    return ml_service.get_model_info()

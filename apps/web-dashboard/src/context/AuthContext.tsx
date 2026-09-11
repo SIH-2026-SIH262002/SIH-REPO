@@ -23,19 +23,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const savedUserStr = localStorage.getItem('user') || sessionStorage.getItem('user');
 
-    if (token) {
+    if (!token) {
+      // Dev bypass: skip the login screen by auto-authenticating as the demo Admin account.
       try {
-        if (savedUserStr) {
-          setUser(JSON.parse(savedUserStr));
-        }
-        const freshUser = await authApi.getMe();
-        setUser(freshUser);
-        const isLocal = !!localStorage.getItem('accessToken');
-        const storage = isLocal ? localStorage : sessionStorage;
-        storage.setItem('user', JSON.stringify(freshUser));
+        const data = await authApi.login({
+          email: 'admin@nerlogisense.gov.in',
+          password: 'password123',
+        });
+        localStorage.setItem('accessToken', data.accessToken);
+        localStorage.setItem('refreshToken', data.refreshToken);
+        localStorage.setItem('sessionId', data.sessionId);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setUser(data.user);
       } catch (err) {
-        console.error('Failed to initialize user session:', err);
+        console.error('Dev auto-login bypass failed:', err);
       }
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      if (savedUserStr) {
+        setUser(JSON.parse(savedUserStr));
+      }
+      const freshUser = await authApi.getMe();
+      setUser(freshUser);
+      const isLocal = !!localStorage.getItem('accessToken');
+      const storage = isLocal ? localStorage : sessionStorage;
+      storage.setItem('user', JSON.stringify(freshUser));
+    } catch (err) {
+      console.error('Failed to initialize user session:', err);
     }
     setIsLoading(false);
   }, []);

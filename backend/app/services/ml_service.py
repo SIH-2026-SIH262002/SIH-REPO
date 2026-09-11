@@ -5,6 +5,7 @@ exposes predict_risk() for scoring a set of sensor + weather readings.
 
 import os
 import joblib
+import numpy as np
 import pandas as pd
 
 _BUNDLE_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "..", "ml", "model_bundle.joblib")
@@ -46,13 +47,22 @@ def predict_risk(reading: dict) -> dict:
     row["soil_type_encoded"] = soil_encoder.transform([soil_type])[0]
 
     X = pd.DataFrame([row])[feature_order]
-    risk_score = float(bundle["regressor"].predict(X)[0])
-    risk_score = max(0.0, min(100.0, risk_score))
-    
-    if hasattr(bundle["classifier"], "predict_proba"):
-        occurrence_probability = float(bundle["classifier"].predict_proba(X)[0][1])
+
+    if "regressors" in bundle:
+        # Ensemble bundle: average the XGBoost + LightGBM predictions.
+        risk_score = float(np.mean([m.predict(X)[0] for m in bundle["regressors"].values()]))
+        occurrence_probability = float(
+            np.mean([m.predict_proba(X)[0][1] for m in bundle["classifiers"].values()])
+        )
     else:
-        occurrence_probability = round(risk_score / 100.0, 3)
+        # Legacy single-model bundle.
+        risk_score = float(bundle["regressor"].predict(X)[0])
+        if hasattr(bundle["classifier"], "predict_proba"):
+            occurrence_probability = float(bundle["classifier"].predict_proba(X)[0][1])
+        else:
+            occurrence_probability = round(risk_score / 100.0, 3)
+
+    risk_score = max(0.0, min(100.0, risk_score))
 
     return {
         "risk_score": round(risk_score, 1),
@@ -63,7 +73,18 @@ def predict_risk(reading: dict) -> dict:
 
 def feature_importances() -> dict:
     bundle = _load()
-    return dict(zip(bundle["feature_order"], [float(v) for v in bundle["regressor"].feature_importances_]))
+    feature_order = bundle["feature_order"]
+
+    if "regressors" in bundle:
+        xgb_imp = np.asarray(bundle["regressors"]["xgboost"].feature_importances_, dtype=float)
+        lgbm_imp = np.asarray(bundle["regressors"]["lightgbm"].feature_importances_, dtype=float)
+        lgbm_imp = lgbm_imp / lgbm_imp.sum()
+        blended = (xgb_imp + lgbm_imp) / 2.0
+        result = dict(zip(feature_order, [float(v) for v in blended]))
+    else:
+        result = dict(zip(feature_order, [float(v) for v in bundle["regressor"].feature_importances_]))
+
+    return dict(sorted(result.items(), key=lambda kv: -kv[1]))
 
 
 def get_model_info() -> dict:
