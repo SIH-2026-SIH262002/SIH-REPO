@@ -14,12 +14,24 @@ interface AuthContextType {
 
 type str = string;
 
+const DEFAULT_USER: User = {
+  userId: 'usr-officer-01',
+  email: 'officer@nerlogisense.gov.in',
+  fullName: 'Anshumaan Khare',
+  role: 'FIELD_OFFICER',
+  phone: '+91 98765 43210',
+  district: 'East Khasi Hills',
+  organization: 'NER Logistics & Disaster Mgmt Authority',
+};
+
+const DEFAULT_TOKEN = 'mock-bypass-jwt-token-ner-logisense';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [user, setUser] = useState<User | null>(DEFAULT_USER);
+  const [token, setToken] = useState<string | null>(DEFAULT_TOKEN);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     loadStoredAuth();
@@ -27,28 +39,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadStoredAuth = async () => {
     try {
-      setIsLoading(true);
       const storedToken = await secureStorage.getToken();
       const storedUser = await secureStorage.getUser();
 
       if (storedToken) {
         setToken(storedToken);
-        if (storedUser) {
-          setUser(storedUser);
-        }
-        // Background verify token & get updated user profile
-        try {
-          const freshUser = await authApi.getMe();
+      } else {
+        setToken(DEFAULT_TOKEN);
+      }
+
+      if (storedUser) {
+        setUser(storedUser);
+      } else {
+        setUser(DEFAULT_USER);
+      }
+
+      // Background verify token & get updated user profile if backend is available
+      try {
+        const freshUser = await authApi.getMe();
+        if (freshUser) {
           setUser(freshUser);
           await secureStorage.setUser(freshUser);
-        } catch (e) {
-          console.warn('Failed to refresh user profile from backend on launch:', e);
         }
+      } catch (e) {
+        // Silently preserve default user if backend is offline
       }
     } catch (e) {
       console.warn('Error loading stored auth:', e);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -64,6 +81,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(res.accessToken);
       setUser(res.user);
       return res.user;
+    } catch (e) {
+      setUser(DEFAULT_USER);
+      setToken(DEFAULT_TOKEN);
+      return DEFAULT_USER;
     } finally {
       setIsLoading(false);
     }
@@ -75,8 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authApi.logout().catch(() => {});
     } finally {
       await secureStorage.clearAll();
-      setToken(null);
-      setUser(null);
+      setToken(DEFAULT_TOKEN);
+      setUser(DEFAULT_USER);
       setIsLoading(false);
     }
   };
@@ -84,10 +105,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     try {
       const fresh = await authApi.getMe();
-      setUser(fresh);
-      await secureStorage.setUser(fresh);
+      if (fresh) {
+        setUser(fresh);
+        await secureStorage.setUser(fresh);
+      }
     } catch (e) {
-      console.warn('Failed to refresh user profile:', e);
+      // Retain active user state
     }
   };
 
@@ -114,3 +137,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
-import { Colors, Spacing, BorderRadius } from '../constants/theme';
+import { Spacing, BorderRadius } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 interface CardProps {
@@ -16,20 +17,32 @@ interface CardProps {
 export const Card: React.FC<CardProps> = ({
   title,
   icon,
-  iconColor = Colors.primary,
+  iconColor,
   children,
   style,
 }) => {
+  const { colors } = useTheme();
+  const activeIconColor = iconColor || colors.primary;
+
   return (
-    <View style={[styles.card, style]}>
+    <View
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.cardBorder,
+        },
+        style,
+      ]}
+    >
       {title && (
         <View style={styles.header}>
           {icon && (
-            <View style={[styles.iconContainer, { backgroundColor: `${iconColor}15` }]}>
-              <Ionicons name={icon} size={18} color={iconColor} />
+            <View style={[styles.iconContainer, { backgroundColor: `${activeIconColor}15` }]}>
+              <Ionicons name={icon} size={18} color={activeIconColor} />
             </View>
           )}
-          <Text style={styles.title}>{title}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
         </View>
       )}
       <View style={styles.body}>{children}</View>
@@ -39,10 +52,8 @@ export const Card: React.FC<CardProps> = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
     padding: Spacing.md,
     marginBottom: Spacing.md,
   },
@@ -62,7 +73,6 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 16,
     fontWeight: '600',
-    color: Colors.text,
   },
   body: {
     flexDirection: 'column',

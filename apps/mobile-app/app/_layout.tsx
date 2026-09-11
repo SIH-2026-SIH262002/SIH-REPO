@@ -4,26 +4,39 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AuthProvider } from '../src/context/AuthContext';
 import { OfflineProvider } from '../src/context/OfflineContext';
-import { Colors } from '../src/constants/theme';
+import { ThemeProvider, useTheme } from '../src/context/ThemeContext';
+
+function AppContent() {
+  const { colors } = useTheme();
+
+  return (
+    <>
+      <StatusBar style={colors.statusBarStyle} backgroundColor={colors.background} />
+      <Stack
+        initialRouteName="(tabs)"
+        screenOptions={{
+          headerShown: false,
+          contentStyle: { backgroundColor: colors.background },
+        }}
+      >
+        <Stack.Screen name="index" />
+        <Stack.Screen name="(auth)" />
+        <Stack.Screen name="(tabs)" />
+      </Stack>
+    </>
+  );
+}
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <OfflineProvider>
-          <StatusBar style="light" backgroundColor={Colors.background} />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: Colors.background },
-            }}
-          >
-            <Stack.Screen name="index" />
-            <Stack.Screen name="(auth)" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
-        </OfflineProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <OfflineProvider>
+            <AppContent />
+          </OfflineProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </SafeAreaProvider>
   );
 }
