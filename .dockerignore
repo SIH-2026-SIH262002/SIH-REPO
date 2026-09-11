@@ -1,0 +1,12 @@
+.git
+.gitignore
+.venv
+node_modules
+**/node_modules
+apps/mobile-app/android/.gradle
+apps/mobile-app/android/build
+apps/mobile-app/android/app/build
+backend/uploads/*
+*.pyc
+__pycache__
+*.log
