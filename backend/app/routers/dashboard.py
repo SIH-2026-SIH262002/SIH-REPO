@@ -1,14 +1,15 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.services.simulation_service import STATE, ALERTS
 from app.services.vehicle_service import VEHICLES, SOS_EVENTS
 from app.services import routing_service
+from app.auth import get_current_user
 
 router = APIRouter(prefix="/api/dashboard", tags=["dashboard"])
 
 
 @router.get("/summary")
-def summary():
+def summary(user: dict = Depends(get_current_user)):
     nodes = list(STATE.values())
     by_category = {"LOW": 0, "MODERATE": 0, "HIGH": 0, "SEVERE": 0}
     for n in nodes:

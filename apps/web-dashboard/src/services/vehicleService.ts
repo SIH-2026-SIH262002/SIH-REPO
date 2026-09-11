@@ -1,27 +1,21 @@
-import { MOCK_VEHICLES } from '../data/mockData';
-import { Vehicle, VehicleStatus } from '../types/vehicle';
+import { apiService } from './apiService';
+import { Vehicle } from '../types/vehicle';
 
 export const vehicleService = {
   getVehicles: async (): Promise<Vehicle[]> => {
-    // Simulated async API call to Spring Boot backend /api/v1/vehicles
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...MOCK_VEHICLES]), 100);
-    });
+    return apiService.getVehicles();
   },
 
   getVehicleById: async (id: string): Promise<Vehicle | undefined> => {
-    return MOCK_VEHICLES.find((v) => v.id === id);
+    const list = await apiService.getVehicles();
+    return list.find((v: any) => v.id === id || v.code === id);
   },
 
   updateVehicleStatus: async (
     id: string,
-    status: VehicleStatus,
-    riskLevel?: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
-  ): Promise<Vehicle> => {
-    const vehicle = MOCK_VEHICLES.find((v) => v.id === id);
-    if (!vehicle) throw new Error('Vehicle not found');
-    vehicle.status = status;
-    if (riskLevel) vehicle.riskLevel = riskLevel;
-    return { ...vehicle };
+    status: string,
+    notes?: string
+  ): Promise<any> => {
+    return apiService.updateDeliveryStatus(id, status, notes);
   },
 };

@@ -1,20 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { EssentialSupplySummary } from '../../types/shipment';
 import { Vehicle } from '../../types/vehicle';
 import { Package, ShieldAlert, Clock, ArrowRight, Truck, Send, AlertTriangle } from 'lucide-react';
 import { OperationalToolbar, FilterState } from '../dashboard/OperationalToolbar';
+import { apiService } from '../../services/apiService';
 
 interface ShipmentsViewProps {
-  supplies: EssentialSupplySummary[];
+  supplies?: EssentialSupplySummary[];
   onOpenRerouteModal?: (vehicle: Vehicle | null) => void;
   onSelectVehicle?: (vehicleCode: string) => void;
 }
 
 export const ShipmentsView: React.FC<ShipmentsViewProps> = ({
-  supplies,
+  supplies = [],
   onOpenRerouteModal,
   onSelectVehicle,
 }) => {
+  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    apiService
+      .getVehicles()
+      .then((data) => {
+        setVehicles(data || []);
+      })
+      .catch(() => setVehicles([]))
+      .finally(() => setLoading(false));
+  }, []);
+
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
     priority: 'ALL',
@@ -39,60 +53,26 @@ export const ShipmentsView: React.FC<ShipmentsViewProps> = ({
     });
   };
 
-  const shipmentsList = [
-    {
-      code: 'SHP-9081',
-      commodity: 'Emergency Medical Oxygen Cylinders',
-      priority: 'CRITICAL',
-      vehicleCode: 'NER-07',
-      origin: 'Guwahati Freight Hub',
-      destination: 'Silchar Civil Hospital',
-      status: 'DELAYED',
-      eta: '4h 20m',
-      delayHours: 4.0,
-      riskLevel: 'HIGH',
-      supplyCriticality: 'CRITICAL (Buffer: 6h 20m)',
-    },
-    {
-      code: 'SHP-9082',
-      commodity: 'Anti-Snake Venom & Insulated Vaccines',
-      priority: 'CRITICAL',
-      vehicleCode: 'NER-01',
-      origin: 'Guwahati Hub',
-      destination: 'Tezpur Hospital Depot',
-      status: 'IN_TRANSIT',
-      eta: '2h 15m',
-      delayHours: 0.0,
-      riskLevel: 'LOW',
-      supplyCriticality: 'STABLE (Buffer: 24h)',
-    },
-    {
-      code: 'SHP-9083',
-      commodity: 'Perishable Organic Crops & Seed Grain',
-      priority: 'HIGH',
-      vehicleCode: 'NER-12',
-      origin: 'Aizawl Hub',
-      destination: 'Silchar Depot',
-      status: 'AT_RISK',
-      eta: '6h 45m',
-      delayHours: 3.5,
-      riskLevel: 'CRITICAL',
-      supplyCriticality: 'HIGH_RISK (Thermal Expiry)',
-    },
-    {
-      code: 'SHP-9084',
-      commodity: 'Bailey Bridge Prefabricated Steel Girders',
-      priority: 'NORMAL',
-      vehicleCode: 'NER-18',
-      origin: 'Siliguri Logistics Yard',
-      destination: 'Gangtok Depot',
-      status: 'IN_TRANSIT',
-      eta: '3h 10m',
-      delayHours: 0.0,
-      riskLevel: 'LOW',
-      supplyCriticality: 'STABLE',
-    },
-  ];
+  const shipmentsList = vehicles.map((v) => {
+    const cargo = v.cargo || v.cargo_type || 'Essential Cargo';
+    const isCritical =
+      cargo.toLowerCase().includes('medic') ||
+      cargo.toLowerCase().includes('oxygen') ||
+      cargo.toLowerCase().includes('vaccine');
+    return {
+      code: `SHP-${v.id || v.code}`,
+      commodity: cargo,
+      priority: isCritical ? 'CRITICAL' : 'NORMAL',
+      vehicleCode: v.code || v.id,
+      origin: v.origin_name || v.origin || 'Unknown Origin',
+      destination: v.destination_name || v.destination || 'Unknown Destination',
+      status: v.status || 'IN_TRANSIT',
+      riskLevel: v.status === 'AT_RISK' ? 'HIGH' : v.status === 'DELAYED' ? 'MODERATE' : 'LOW',
+      supplyCriticality: v.status === 'AT_RISK' ? 'HIGH_RISK' : 'STABLE',
+    };
+  });
+
+  const criticalShipment = shipmentsList.find((s) => s.priority === 'CRITICAL' && s.riskLevel !== 'LOW');
 
   const filteredShipments = shipmentsList.filter((s) => {
     if (filters.searchQuery) {
@@ -121,28 +101,33 @@ export const ShipmentsView: React.FC<ShipmentsViewProps> = ({
         filteredAssetsCount={filteredShipments.length}
       />
 
-      {/* Critical Shipment Highlight Alert Banner */}
-      <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
-        <div className="flex items-center space-x-2.5">
-          <span className="p-1.5 bg-rose-600 text-white rounded-lg font-bold text-[10px] animate-pulse">
-            🚨 CRITICAL SHIPMENT
-          </span>
-          <div>
-            <h4 className="font-extrabold text-rose-950 text-xs">SHP-9081: Emergency Medical Oxygen Cylinders</h4>
-            <p className="text-[11px] text-rose-800 font-mono">
-              Assigned: <strong>NER-07</strong> | Dest: <strong>Civil Hospital Silchar</strong> | Delay: <strong>+4h (Haflong Pass Blockage)</strong>
-            </p>
+      {/* Critical Shipment Highlight Alert Banner -- only rendered when a real at-risk critical shipment exists */}
+      {criticalShipment && (
+        <div className="bg-rose-50 border border-rose-200 rounded-xl p-3.5 flex items-center justify-between shadow-sm">
+          <div className="flex items-center space-x-2.5">
+            <span className="p-1.5 bg-rose-600 text-white rounded-lg font-bold text-[10px] animate-pulse">
+              🚨 CRITICAL SHIPMENT
+            </span>
+            <div>
+              <h4 className="font-extrabold text-rose-950 text-xs">
+                {criticalShipment.code}: {criticalShipment.commodity}
+              </h4>
+              <p className="text-[11px] text-rose-800 font-mono">
+                Assigned: <strong>{criticalShipment.vehicleCode}</strong> | Dest:{' '}
+                <strong>{criticalShipment.destination}</strong> | Status: <strong>{criticalShipment.status}</strong>
+              </p>
+            </div>
           </div>
-        </div>
 
-        <button
-          onClick={() => onOpenRerouteModal?.(null)}
-          className="px-3.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white rounded-lg font-bold shadow-md shadow-rose-700/20 transition flex items-center space-x-1.5 shrink-0"
-        >
-          <Send className="w-3.5 h-3.5" />
-          <span>Evaluate & Approve Reroute</span>
-        </button>
-      </div>
+          <button
+            onClick={() => onOpenRerouteModal?.(null)}
+            className="px-3.5 py-1.5 bg-rose-700 hover:bg-rose-800 text-white rounded-lg font-bold shadow-md shadow-rose-700/20 transition flex items-center space-x-1.5 shrink-0"
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Evaluate & Approve Reroute</span>
+          </button>
+        </div>
+      )}
 
       {/* Shipments Operations Matrix */}
       <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-sm">
@@ -198,8 +183,8 @@ export const ShipmentsView: React.FC<ShipmentsViewProps> = ({
                   <td className="p-3 font-mono text-[11px] text-slate-900">{s.destination}</td>
                   <td className="p-3 font-mono text-[11px]">
                     <div className="font-bold text-slate-900">{s.status}</div>
-                    <div className={s.delayHours > 0 ? 'text-rose-700 font-bold' : 'text-emerald-700'}>
-                      {s.delayHours > 0 ? `+${s.delayHours}h Delay` : 'On Time'}
+                    <div className={s.status === 'DELAYED' ? 'text-rose-700 font-bold' : 'text-emerald-700'}>
+                      {s.status === 'DELAYED' ? 'Delayed' : 'On Time'}
                     </div>
                   </td>
                   <td className="p-3 font-mono text-[10.5px]">

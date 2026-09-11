@@ -30,7 +30,13 @@ class DeliveryStatusPayload(BaseModel):
 
 @router.get("")
 def list_vehicles(user: dict = Depends(get_current_user)):
-    """List all vehicles (Restricted for OPERATOR & ADMIN roles)."""
+    """
+    List all vehicles. Open to any authenticated role (not just Logistics
+    Operator/Admin) because Emergency Operator, Field Officer and Driver
+    dashboards all render the same fleet layer on their situational map --
+    see DashboardPage.tsx's unconditional getVehicles() call. Still requires
+    a valid session (401 for anonymous callers).
+    """
     return list(VEHICLES.values())
 
 
@@ -44,16 +50,13 @@ def get_driver_assigned_vehicle(user: dict = Depends(get_current_user)):
     user_id = str(user.get("sub", "")).strip().lower()
 
     for v_id, v in VEHICLES.items():
-        d_name = str(v.get("driver", "")).strip().lower()
+        d_name = str(v.get("driver_name", "")).strip().lower()
         v_code = str(v.get("code", "")).strip().lower()
-        if user_name in d_name or user_id in v_id.lower() or user_id in v_code:
+        if (user_name and user_name in d_name) or (user_id and user_id in v_id.lower()) or (user_id and user_id in v_code):
             return {"assigned": True, "vehicle": v}
 
-    # Default first vehicle for demo fallback if identity is generic driver
-    if VEHICLES:
-        first_v = list(VEHICLES.values())[0]
-        return {"assigned": True, "vehicle": first_v, "notice": "Assigned default fleet unit for active driver session."}
-
+    # No fabricated fallback: an unmatched driver genuinely has no assigned
+    # vehicle in this simulation, and must never be handed someone else's.
     return {"assigned": False, "message": "No vehicle assigned to authenticated driver account."}
 
 

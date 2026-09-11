@@ -1,10 +1,7 @@
-import { MOCK_ESSENTIAL_SUPPLIES } from '../data/mockData';
-import { EssentialSupplySummary } from '../types/shipment';
+import { apiService } from './apiService';
 
 export const logisticsService = {
-  getEssentialSupplySummary: async (): Promise<EssentialSupplySummary[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...MOCK_ESSENTIAL_SUPPLIES]), 100);
-    });
+  getEssentialSupplySummary: async (): Promise<any> => {
+    return apiService.getSupplyGapIntelligence();
   },
 };

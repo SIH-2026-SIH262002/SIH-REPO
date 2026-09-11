@@ -3,6 +3,8 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { Eye, EyeOff, Lock, Mail, Phone, Truck, Shield, AlertCircle } from 'lucide-react';
 import { UserRole } from '../types/auth';
+import { useTranslation } from 'react-i18next';
+import { LanguageSelector } from '../components/common/LanguageSelector';
 
 const getRedirectPath = (role?: UserRole) => {
   switch (role) {
@@ -26,6 +28,7 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const { t } = useTranslation();
 
   const [inputMode, setInputMode] = useState<'email' | 'phone'>('email');
   const [identifier, setIdentifier] = useState('');
@@ -41,11 +44,15 @@ export const LoginPage: React.FC = () => {
     setError(null);
 
     if (!identifier.trim()) {
-      setError(`Please enter your ${inputMode === 'email' ? 'Email Address' : 'Phone Number'}`);
+      setError(
+        inputMode === 'email'
+          ? t('auth.login.enterEmailError', 'Please enter your Email Address')
+          : t('auth.login.enterPhoneError', 'Please enter your Phone Number')
+      );
       return;
     }
     if (!password) {
-      setError('Please enter your password');
+      setError(t('auth.login.enterPasswordError', 'Please enter your password'));
       return;
     }
 
@@ -66,15 +73,20 @@ export const LoginPage: React.FC = () => {
       navigate(targetPath, { replace: true });
     } catch (err: any) {
       const msg =
-        err.response?.data?.error || err.message || 'Authentication failed. Please check credentials.';
-      setError(msg === 'Invalid credentials' ? 'Invalid email/phone or password.' : msg);
+        err.response?.data?.error || err.message || t('auth.login.authFailed', 'Authentication failed. Please check credentials.');
+      setError(msg === 'Invalid credentials' ? t('auth.login.invalidCredentials', 'Invalid email/phone or password.') : msg);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-900 font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8 text-slate-900 font-sans relative">
+      {/* Language Selector Top Right */}
+      <div className="absolute top-4 right-4 z-10">
+        <LanguageSelector variant="header" />
+      </div>
+
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         {/* Logo & Header */}
         <div className="flex justify-center mb-3">
@@ -83,10 +95,10 @@ export const LoginPage: React.FC = () => {
           </div>
         </div>
         <h2 className="text-center text-2xl font-extrabold tracking-tight text-slate-900">
-          AUTHORIZED PERSONNEL LOGIN
+          {t('auth.login.title', 'AUTHORIZED PERSONNEL LOGIN')}
         </h2>
         <p className="mt-1 text-center text-xs text-slate-500">
-          NER Logistics & Accessibility Intelligence Platform — Authorized Access Only
+          {t('auth.login.subtitle', 'NER Logistics & Accessibility Intelligence Platform — Authorized Access Only')}
         </p>
       </div>
 
@@ -107,7 +119,7 @@ export const LoginPage: React.FC = () => {
               }`}
             >
               <Mail className="w-3.5 h-3.5" />
-              <span>Email Address</span>
+              <span>{t('auth.login.emailTab', 'Email Address')}</span>
             </button>
             <button
               type="button"
@@ -122,7 +134,7 @@ export const LoginPage: React.FC = () => {
               }`}
             >
               <Phone className="w-3.5 h-3.5" />
-              <span>Phone Number</span>
+              <span>{t('auth.login.phoneTab', 'Phone Number')}</span>
             </button>
           </div>
 
@@ -138,7 +150,9 @@ export const LoginPage: React.FC = () => {
             {/* Email / Phone Field */}
             <div>
               <label className="block text-xs font-medium text-slate-700 mb-1.5">
-                {inputMode === 'email' ? 'Email Address' : 'Phone Number'}
+                {inputMode === 'email'
+                  ? t('auth.login.emailLabel', 'Email Address')
+                  : t('auth.login.phoneLabel', 'Phone Number')}
               </label>
               <div className="relative rounded-md shadow-sm">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
@@ -160,12 +174,14 @@ export const LoginPage: React.FC = () => {
             {/* Password Field */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-medium text-slate-700">Password</label>
+                <label className="block text-xs font-medium text-slate-700">
+                  {t('auth.login.passwordLabel', 'Password')}
+                </label>
                 <Link
                   to="/forgot-password"
                   className="text-xs font-medium text-emerald-700 hover:text-emerald-800 transition"
                 >
-                  Forgot Password?
+                  {t('auth.login.forgotPassword', 'Forgot Password?')}
                 </Link>
               </div>
               <div className="relative rounded-md shadow-sm">
@@ -201,7 +217,7 @@ export const LoginPage: React.FC = () => {
                   className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-xs text-slate-700">
-                  Remember operational session
+                  {t('auth.login.rememberMe', 'Remember operational session')}
                 </label>
               </div>
             </div>
@@ -216,10 +232,10 @@ export const LoginPage: React.FC = () => {
                 {isLoading ? (
                   <div className="flex items-center space-x-2">
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    <span>Verifying Credentials...</span>
+                    <span>{t('auth.login.verifying', 'Verifying Credentials...')}</span>
                   </div>
                 ) : (
-                  'Sign In to Platform'
+                  t('auth.login.signInButton', 'Sign In to Platform')
                 )}
               </button>
             </div>
@@ -228,7 +244,7 @@ export const LoginPage: React.FC = () => {
           {/* Operational Access Notice */}
           <div className="mt-6 pt-5 border-t border-slate-200 text-center">
             <p className="text-xs text-slate-500">
-              Account provisioning is restricted to authorized platform administrators. Public self-registration is disabled.
+              {t('auth.login.provisioningNotice', 'Account provisioning is restricted to authorized platform administrators. Public self-registration is disabled.')}
             </p>
           </div>
         </div>
@@ -237,7 +253,7 @@ export const LoginPage: React.FC = () => {
         <div className="mt-6 bg-white border border-slate-200 rounded-lg p-3 flex items-center justify-between text-[11px] text-slate-600 shadow-xs">
           <div className="flex items-center space-x-2">
             <Shield className="w-4 h-4 text-emerald-600" />
-            <span>Encrypted Session • Role Security Active</span>
+            <span>{t('auth.login.encryptedSession', 'Encrypted Session • Role Security Active')}</span>
           </div>
           <span className="text-slate-400">v1.0.0</span>
         </div>
@@ -245,3 +261,4 @@ export const LoginPage: React.FC = () => {
     </div>
   );
 };
+

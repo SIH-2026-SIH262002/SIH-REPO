@@ -1,6 +1,10 @@
-import axios from 'axios';
+import axios, { InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// This client talks to the Express auth-service (identity, sessions, and the
+// Admin Console's user directory/lifecycle) -- NOT the FastAPI operational
+// gateway (see services/apiService.ts for that). Two separate backends, two
+// separate base URLs; do not collapse them into one env var.
+const API_BASE_URL = (import.meta as any).env?.VITE_AUTH_URL || 'http://localhost:3000';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -28,20 +32,20 @@ const processQueue = (error: any, token: string | null = null) => {
 
 // Request Interceptor: Attach Access Token
 apiClient.interceptors.request.use(
-  (config) => {
+  (config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error: any) => Promise.reject(error)
 );
 
 // Response Interceptor: Auto Refresh Token on 401
 apiClient.interceptors.response.use(
-  (response) => response,
-  async (error) => {
+  (response: AxiosResponse) => response,
+  async (error: any) => {
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -115,3 +119,4 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+

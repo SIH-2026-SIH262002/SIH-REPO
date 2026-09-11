@@ -70,7 +70,11 @@ export async function logoutApi() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId })
             });
-        } catch (_) {}
+        } catch {
+            // Best-effort session revocation -- log out locally regardless of
+            // whether the server call succeeds (network error, expired
+            // session, etc. should never block the user from logging out).
+        }
     }
     getAuthStorage().clear();
 }

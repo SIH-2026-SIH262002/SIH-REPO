@@ -1,11 +1,11 @@
 import axios from 'axios';
 
-const RAW_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-// Normalize so this file's endpoint paths (which omit '/api') resolve correctly
-// whether VITE_API_URL already includes the '/api' suffix or not.
-const API_BASE_URL = RAW_BASE_URL.replace(/\/+$/, '').endsWith('/api')
-  ? RAW_BASE_URL.replace(/\/+$/, '')
-  : `${RAW_BASE_URL.replace(/\/+$/, '')}/api`;
+// FastAPI gateway (backend/app) -- operational/simulation domain data
+// (sensors, routing, SOS, reports, vehicles, warehouses, notifications, ML
+// risk). Identity/session/Admin user-lifecycle calls go through
+// api/apiClient.ts against the separate Express auth-service instead.
+// VITE_API_URL must include the /api suffix -- see apps/web-dashboard/.env.
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -15,15 +15,27 @@ export const apiClient = axios.create({
   timeout: 8000,
 });
 
+// Attach the same access token used against the auth-service. Every FastAPI
+// route the Admin Console calls now requires a valid Bearer token (a missing
+// or invalid one gets 401, not a synthetic identity -- see
+// docs/ADMIN_CONSOLE_IMPLEMENTATION_SPEC.md §D item 1), so this interceptor
+// is load-bearing, not optional.
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export const apiService = {
   // System Dashboard Summary
   getDashboardSummary: async () => {
-    try {
-      const response = await apiClient.get('/dashboard/summary');
-      return response.data;
-    } catch (err) {
-      return { status: 'OK', activeVehicles: 4, openAlerts: 2 };
-    }
+    const response = await apiClient.get('/dashboard/summary');
+    return response.data;
   },
 
   // Sensor Telemetry
@@ -37,6 +49,7 @@ export const apiService = {
     return response.data;
   },
 
+  // Admin / Emergency Operator only (backend-enforced, see sensors.py)
   injectStorm: async (nodeKey: string, rainfall24h = 120.0, vibration = 4.5) => {
     const response = await apiClient.post('/sensors/inject-storm', {
       node_key: nodeKey,
@@ -46,6 +59,7 @@ export const apiService = {
     return response.data;
   },
 
+  // Admin / Emergency Operator only (backend-enforced, see sensors.py)
   resetScenario: async () => {
     const response = await apiClient.post('/sensors/reset-scenario');
     return response.data;
@@ -62,6 +76,7 @@ export const apiService = {
     return response.data;
   },
 
+  // Real training-time metrics (MAE, R^2, ROC-AUC) + feature importances
   getModelInfo: async () => {
     const response = await apiClient.get('/risk/model-info');
     return response.data;
@@ -72,6 +87,11 @@ export const apiService = {
     const response = await apiClient.get('/routes/plan', {
       params: { origin, destination, criticality_multiplier: criticalityMultiplier },
     });
+    return response.data;
+  },
+
+  getRouteGraph: async () => {
+    const response = await apiClient.get('/routes/graph');
     return response.data;
   },
 
@@ -100,8 +120,19 @@ export const apiService = {
     return response.data;
   },
 
+  getWarehouses: async () => {
+    const response = await apiClient.get('/warehouses');
+    return response.data;
+  },
+
   getIncidentImpactChain: async (incidentId: string) => {
     const response = await apiClient.get(`/incidents/${incidentId}/impact-chain`);
+    return response.data;
+  },
+
+  // Fleet
+  getVehicles: async () => {
+    const response = await apiClient.get('/vehicles');
     return response.data;
   },
 
@@ -132,7 +163,8 @@ export const apiService = {
     return response.data;
   },
 
-  // Emergency SOS Engine
+  // Emergency SOS Engine (Admin sees all districts; Emergency Operator is
+  // filtered server-side to their own district -- see backend/app/routers/sos.py)
   getSOS: async () => {
     const response = await apiClient.get('/sos');
     return response.data;
@@ -169,96 +201,61 @@ export const apiService = {
     return response.data;
   },
 
-  // --- Backend Feature Service Connections ---
-
-  // 1. Thermal Budget Decay Monitor for Cold-Chain Medical Cargo
+  // Thermal budget monitoring (returns null if backend endpoint unavailable)
   getThermalBudget: async (shipmentId: string) => {
     try {
       const response = await apiClient.get(`/shipment/thermal/${shipmentId}`);
       return response.data;
     } catch (err) {
-      return {
-        shipmentId,
-        cargoType: 'Vaccines & ICU Biologics',
-        targetTempCelsius: 4.0,
-        currentTempCelsius: 5.2,
-        ambientTempCelsius: 32.0,
-        safeHoursRemaining: 18.5,
-        status: 'NOMINAL',
-      };
+      // Returns null so caller can display NOT CONFIGURED rather than fake data
+      return null;
     }
   },
 
-  // 2. ML Corridor Clearance & ETR Recovery Engine
+  // Corridor recovery prediction (returns null if backend endpoint unavailable)
   getCorridorRecovery: async (corridorCode: string) => {
     try {
       const response = await apiClient.get(`/recovery/predict`, { params: { corridorCode } });
       return response.data;
     } catch (err) {
-      return {
-        corridorCode,
-        estimatedClearanceHours: 4.2,
-        confidenceLowerHours: 3.4,
-        confidenceUpperHours: 5.0,
-        weatherPenaltyMultiplier: 1.25,
-        excavatorsAssigned: 3,
-        status: 'IN_PROGRESS',
-      };
+      // Returns null so caller can display NOT CONFIGURED rather than fake data
+      return null;
     }
   },
 
-  // 3. IoT Edge Device Hardware Telemetry
-  getDeviceTelemetry: async () => {
-    try {
-      const response = await apiClient.get('/devices/telemetry');
-      return response.data;
-    } catch (err) {
-      return [
-        { deviceId: 'NODE-SILCHAR-04', batteryPct: 92, solarStatus: 'CHARGING', rssiDbm: -68, firmware: 'v2.4.1-ner' },
-        { deviceId: 'NODE-HAFLONG-02', batteryPct: 78, solarStatus: 'DISCHARGING', rssiDbm: -82, firmware: 'v2.4.1-ner' },
-      ];
-    }
+  // Logistics Operator Reroute Approval
+  approveReroute: async (vehicleId: string, bypassRoute: string, notes?: string) => {
+    const response = await apiClient.post(`/vehicles/${vehicleId}/delivery-status`, {
+      status: 'IN_TRANSIT',
+      notes: `REROUTED via ${bypassRoute}. ${notes || ''}`.trim(),
+    });
+    return response.data;
   },
 
-  // 4. District Alert Policy Thresholds
-  getAlertPolicies: async () => {
-    try {
-      const response = await apiClient.get('/alert-policies');
-      return response.data;
-    } catch (err) {
-      return [
-        { district: 'Dima Hasao (Haflong)', moistureThresholdPct: 85, vibrationThreshold: 4.0 },
-        { district: 'Kamrup Metro (Guwahati)', moistureThresholdPct: 75, vibrationThreshold: 3.5 },
-      ];
-    }
+  // Service health liveness probe (real; see backend/app/main.py). Registered
+  // directly on the app at /api/health, not under a router, but resolves the
+  // same way since VITE_API_URL already carries the /api suffix.
+  getHealth: async () => {
+    const response = await apiClient.get('/health');
+    return response.data;
   },
 
-  // 5. Multilingual Native Localization Support
+  // Multilingual Native Localization Support (real backend: backend/app/routers/i18n.py)
   getTranslations: async (lang: string) => {
     try {
       const response = await apiClient.get(`/i18n/${lang}`);
       return response.data;
     } catch (err) {
+      // Graceful client-side fallback for static UI strings only -- never
+      // used for operational/telemetry data.
       const translations: Record<string, Record<string, string>> = {
         AS: {
           hazard_warning: 'সতৰ্কতা: স্খলনৰ সম্ভাৱনা আছে। বিকল্প পথ ব্যৱহাৰ কৰক।',
           sos_relayed: 'জরুৰীকালীন সাহায্য প্ৰেৰণ কৰা হৈছে।',
         },
-        BN: {
-          hazard_warning: 'সতর্কতা: ধসের আশঙ্কা রয়েছে। বিকল্প পথ ব্যবহার করুন।',
-          sos_relayed: 'জরুরি সাহায্য প্রেরণ করা হয়েছে।',
-        },
         HI: {
           hazard_warning: 'चेतावनी: भूस्खलन का खतरा है। वैकल्पिक मार्ग का उपयोग करें।',
           sos_relayed: 'आपातकालीन सहायता भेजी गई है।',
-        },
-        MN: {
-          hazard_warning: 'ꯆꯤꯡꯔꯨꯝ ꯇꯨꯕꯒꯤ ꯑꯀꯤꯕꯥ ꯂꯩ: ꯑꯇꯣꯞꯄꯥ ꯂꯝꯕꯤ ꯁꯤꯖꯤꯟꯅꯕꯤꯌꯨ।',
-          sos_relayed: 'ꯑꯦꯃꯔꯖꯦꯟꯁꯤ ꯃꯇꯦꯡ ꯊꯥꯈ꯭ꯔꯦ।',
-        },
-        MZ: {
-          hazard_warning: 'Tlaichhia hriattirna: Kawng dang hmang rawh.',
-          sos_relayed: 'Kut-hmeh Chhanneihna hriattirna thawn a ni.',
         },
         EN: {
           hazard_warning: 'WARNING: Landslide risk detected. Use recommended bypass corridor.',
@@ -266,16 +263,6 @@ export const apiService = {
         },
       };
       return translations[lang] || translations['EN'];
-    }
-  },
-
-  // 6. Pre-configured Disaster Simulation Trigger
-  triggerScenario: async (scenarioName: string) => {
-    try {
-      const response = await apiClient.post('/simulation-scenarios/trigger', { scenario_name: scenarioName });
-      return response.data;
-    } catch (err) {
-      return { scenario: scenarioName, status: 'ACTIVATED', timestamp: new Date().toISOString() };
     }
   },
 };
