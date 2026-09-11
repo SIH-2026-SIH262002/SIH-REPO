@@ -12,3 +12,4 @@ backend/*.db
 .DS_Store
 .expo/
 *.apk
+docker/graphhopper/data/
