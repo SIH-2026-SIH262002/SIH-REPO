@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { HardHat, CheckCircle2, AlertTriangle, Camera, Activity, FileCheck, ShieldCheck, MapPin, Upload, RefreshCw } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface FieldTask {
+
   id: string;
   location: string;
   district: string;
@@ -22,6 +24,8 @@ interface SensorAnomaly {
 }
 
 export const FieldOfficerDashboardView: React.FC = () => {
+  const { t } = useTranslation();
+
   // 1. Field Task Queue
   const [tasks, setTasks] = useState<FieldTask[]>([
     {
@@ -91,16 +95,17 @@ export const FieldOfficerDashboardView: React.FC = () => {
           </div>
           <div>
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              Ground Verification & Closed-Loop Field Intelligence
+              {t('field.consoleTitle', 'Field Officer Incident Portal')}
               <span className="px-2.5 py-0.5 rounded-full text-xs font-mono font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300">
-                FIELD_OFFICER ROLE
+                {t('roles.fieldOfficer', 'Field Reporting Officer')}
               </span>
             </h2>
             <p className="text-xs text-slate-400">
-              Acknowledge field tasks, inspect IoT landslide anomalies, submit verified outcomes (`NO_HAZARD_FOUND`, `HAZARD_CONFIRMED`), and attach SHA-256 hashed evidence photos.
+              Acknowledge field tasks, inspect IoT landslide anomalies, submit verified outcomes, and attach evidence photos.
             </p>
           </div>
         </div>
+
         <div className="flex items-center space-x-3">
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold">
             <Activity className="w-4 h-4" />

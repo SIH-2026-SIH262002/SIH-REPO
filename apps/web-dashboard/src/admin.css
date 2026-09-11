@@ -6,7 +6,8 @@
  * accessible: no gradients, no glassmorphism, no glow, minimal radius.
  */
 
-.admin-console {
+.admin-console,
+.logistics-console {
   --adm-bg: #f4f6f8;
   --adm-surface: #ffffff;
   --adm-raised: #fafbfc;
@@ -43,34 +44,41 @@
   color-scheme: light;
 }
 
-.admin-console * {
+.admin-console *,
+.logistics-console * {
   box-sizing: border-box;
 }
 
-.admin-console table {
+.admin-console table,
+.logistics-console table {
   font-variant-numeric: tabular-nums;
   border-collapse: collapse;
 }
 
-.admin-console :focus-visible {
+.admin-console :focus-visible,
+.logistics-console :focus-visible {
   outline: 2px solid var(--adm-primary);
   outline-offset: 2px;
 }
 
-.admin-console ::-webkit-scrollbar {
+.admin-console ::-webkit-scrollbar,
+.logistics-console ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
-.admin-console ::-webkit-scrollbar-track {
+.admin-console ::-webkit-scrollbar-track,
+.logistics-console ::-webkit-scrollbar-track {
   background: var(--adm-raised);
 }
-.admin-console ::-webkit-scrollbar-thumb {
+.admin-console ::-webkit-scrollbar-thumb,
+.logistics-console ::-webkit-scrollbar-thumb {
   background: var(--adm-border-strong);
   border-radius: 4px;
 }
 
 @media (max-width: 767px) {
-  .admin-console {
+  .admin-console,
+  .logistics-console {
     --adm-sidebar-width: 0px;
   }
 }

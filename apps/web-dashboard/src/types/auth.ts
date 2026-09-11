@@ -3,14 +3,16 @@ export type UserRole =
   | 'EMERGENCY_OPERATOR'
   | 'LOGISTICS_OPERATOR'
   | 'FIELD_OFFICER'
-  | 'DRIVER';
+  | 'DRIVER'
+  | 'SUPER_ADMIN'
+  | 'DISTRICT_AUTHORITY';
 
 export function normalizeUserRole(role?: string): UserRole {
   if (!role) return 'FIELD_OFFICER';
   const uRole = role.toUpperCase();
-  if (uRole === 'SUPER_ADMIN') return 'ADMIN';
-  if (uRole === 'DISTRICT_AUTHORITY') return 'EMERGENCY_OPERATOR';
-  const canonicals: UserRole[] = ['ADMIN', 'EMERGENCY_OPERATOR', 'LOGISTICS_OPERATOR', 'FIELD_OFFICER', 'DRIVER'];
+  if (uRole === 'SUPER_ADMIN') return 'SUPER_ADMIN';
+  if (uRole === 'DISTRICT_AUTHORITY') return 'DISTRICT_AUTHORITY';
+  const canonicals: UserRole[] = ['ADMIN', 'EMERGENCY_OPERATOR', 'LOGISTICS_OPERATOR', 'FIELD_OFFICER', 'DRIVER', 'SUPER_ADMIN', 'DISTRICT_AUTHORITY'];
   if (canonicals.includes(uRole as UserRole)) {
     return uRole as UserRole;
   }
@@ -23,6 +25,7 @@ export interface User {
   email: string;
   phone?: string;
   username?: string;
+  identifier?: string;
   role: UserRole;
   roles?: string[];
   permissions?: string[];
@@ -31,6 +34,7 @@ export interface User {
   is_active?: boolean;
   created_at?: string;
 }
+
 
 export interface AuthTokens {
   accessToken: string;

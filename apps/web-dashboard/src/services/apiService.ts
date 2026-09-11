@@ -200,42 +200,35 @@ export const apiService = {
     return response.data;
   },
 
-  // --- Used by LogisticsOperatorView / EmergencyOperatorView (other roles,
-  // out of scope for the Admin Console rebuild) -- no backend endpoint exists
-  // for either yet, so these graceful-fallback shapes are left in place
-  // exactly as before rather than breaking those consoles' builds. ---
+  // Thermal budget monitoring (returns null if backend endpoint unavailable)
   getThermalBudget: async (shipmentId: string) => {
     try {
       const response = await apiClient.get(`/shipment/thermal/${shipmentId}`);
       return response.data;
     } catch (err) {
-      return {
-        shipmentId,
-        cargoType: 'Vaccines & ICU Biologics',
-        targetTempCelsius: 4.0,
-        currentTempCelsius: 5.2,
-        ambientTempCelsius: 32.0,
-        safeHoursRemaining: 18.5,
-        status: 'NOMINAL',
-      };
+      // Returns null so caller can display NOT CONFIGURED rather than fake data
+      return null;
     }
   },
 
+  // Corridor recovery prediction (returns null if backend endpoint unavailable)
   getCorridorRecovery: async (corridorCode: string) => {
     try {
       const response = await apiClient.get(`/recovery/predict`, { params: { corridorCode } });
       return response.data;
     } catch (err) {
-      return {
-        corridorCode,
-        estimatedClearanceHours: 4.2,
-        confidenceLowerHours: 3.4,
-        confidenceUpperHours: 5.0,
-        weatherPenaltyMultiplier: 1.25,
-        excavatorsAssigned: 3,
-        status: 'IN_PROGRESS',
-      };
+      // Returns null so caller can display NOT CONFIGURED rather than fake data
+      return null;
     }
+  },
+
+  // Logistics Operator Reroute Approval
+  approveReroute: async (vehicleId: string, bypassRoute: string, notes?: string) => {
+    const response = await apiClient.post(`/vehicles/${vehicleId}/delivery-status`, {
+      status: 'IN_TRANSIT',
+      notes: `REROUTED via ${bypassRoute}. ${notes || ''}`.trim(),
+    });
+    return response.data;
   },
 
   // Service health liveness probe (real; see backend/app/main.py). Registered

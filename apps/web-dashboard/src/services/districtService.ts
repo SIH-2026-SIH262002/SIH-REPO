@@ -1,10 +1,8 @@
-import { MOCK_DISTRICTS } from '../data/mockData';
-import { DistrictStatus } from '../types/district';
+import { apiService } from './apiService';
 
 export const districtService = {
-  getDistricts: async (): Promise<DistrictStatus[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...MOCK_DISTRICTS]), 100);
-    });
+  getDistricts: async (): Promise<any[]> => {
+    const res = await apiService.getDashboardSummary();
+    return res.district_status || [];
   },
 };

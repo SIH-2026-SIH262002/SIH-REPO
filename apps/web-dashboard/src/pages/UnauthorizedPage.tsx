@@ -2,9 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldAlert, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useTranslation } from 'react-i18next';
 
 export const UnauthorizedPage: React.FC = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center items-center px-4 text-slate-100 text-center">
@@ -13,11 +15,11 @@ export const UnauthorizedPage: React.FC = () => {
       </div>
 
       <h1 className="text-2xl font-bold tracking-tight text-slate-100">
-        403 - AUTHORIZATION DENIED
+        {t('auth.unauthorized.title', '403 - ACCESS DENIED')}
       </h1>
 
       <p className="mt-2 text-xs text-slate-400 max-w-md">
-        Your role <span className="text-rose-400 font-bold">{user?.role || 'GUEST'}</span> does not have authorization to access this operational module or route.
+        {t('auth.unauthorized.message', 'You do not have permission to view this page.')} ({t('common.role', 'Role')}: <span className="text-rose-400 font-bold">{user?.role || 'GUEST'}</span>)
       </p>
 
       <div className="mt-6">
@@ -26,9 +28,10 @@ export const UnauthorizedPage: React.FC = () => {
           className="inline-flex items-center space-x-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition"
         >
           <ArrowLeft className="w-4 h-4 text-emerald-400" />
-          <span>Return to Authorized Dashboard</span>
+          <span>{t('auth.unauthorized.backButton', 'Return to Authorized Dashboard')}</span>
         </Link>
       </div>
     </div>
   );
 };
+

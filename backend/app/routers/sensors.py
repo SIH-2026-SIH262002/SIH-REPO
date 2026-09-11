@@ -7,7 +7,7 @@ from app.services.simulation_service import (
     inject_storm_event,
     reset_simulation_state,
 )
-from app.auth import require_roles
+from app.auth import require_roles, get_current_user
 
 router = APIRouter(prefix="/api/sensors", tags=["sensors"])
 
@@ -20,12 +20,12 @@ class StormInjectionRequest(BaseModel):
 
 
 @router.get("")
-def list_sensors():
+def list_sensors(user: dict = Depends(get_current_user)):
     return list(STATE.values())
 
 
 @router.get("/{node_key}")
-def get_sensor(node_key: str):
+def get_sensor(node_key: str, user: dict = Depends(get_current_user)):
     node_key_upper = node_key.upper()
     if node_key_upper not in STATE:
         raise HTTPException(404, f"Unknown node '{node_key}'")

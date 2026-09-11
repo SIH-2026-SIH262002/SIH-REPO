@@ -64,6 +64,17 @@ USERS_DB = {
         "organization": "NER LogiSense Command Center",
         "password": "password123",
         "status": "ACTIVE",
+    },
+    "logistics@nerlogisense.gov.in": {
+        "userId": "usr_log_01",
+        "fullName": "Priya Sharma",
+        "email": "logistics@nerlogisense.gov.in",
+        "phone": "+919876543213",
+        "role": "LOGISTICS_OPERATOR",
+        "district": "Kamrup Metro",
+        "organization": "NER Logistics Command Center",
+        "password": "password123",
+        "status": "ACTIVE",
     }
 }
 

@@ -2,6 +2,8 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
 import { AdminRoutes } from './AdminRoutes';
+import { LogisticsRoutes } from './LogisticsRoutes';
+import { EmergencyRoutes } from './EmergencyRoutes';
 import { LoginPage } from '../pages/LoginPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/ResetPasswordPage';
@@ -64,18 +66,18 @@ export const AppRoutes: React.FC = () => {
         }
       />
       <Route
-        path="/logistics"
+        path="/logistics/*"
         element={
           <ProtectedRoute allowedRoles={['ADMIN', 'LOGISTICS_OPERATOR']}>
-            <DashboardPage />
+            <LogisticsRoutes />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/emergency"
+        path="/emergency/*"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'EMERGENCY_OPERATOR']}>
-            <DashboardPage />
+          <ProtectedRoute allowedRoles={['ADMIN', 'EMERGENCY_OPERATOR', 'DISTRICT_AUTHORITY']}>
+            <EmergencyRoutes />
           </ProtectedRoute>
         }
       />

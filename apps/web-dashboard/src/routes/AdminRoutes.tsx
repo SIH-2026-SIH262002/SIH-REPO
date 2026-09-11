@@ -5,7 +5,6 @@ import { AdminOverviewPage } from '../pages/admin/AdminOverviewPage';
 import { UserDirectoryPage } from '../pages/admin/UserDirectoryPage';
 import { ProvisionUserPage } from '../pages/admin/ProvisionUserPage';
 import { UserRecordPage } from '../pages/admin/UserRecordPage';
-import { RolesReferencePage } from '../pages/admin/RolesReferencePage';
 import { DistrictRegistryPage } from '../pages/admin/DistrictRegistryPage';
 import { RiskIntelligencePage } from '../pages/admin/RiskIntelligencePage';
 import { EmergencyOversightPage } from '../pages/admin/EmergencyOversightPage';
@@ -30,7 +29,6 @@ export const AdminRoutes: React.FC = () => {
         <Route path="users" element={<UserDirectoryPage />} />
         <Route path="users/provision" element={<ProvisionUserPage />} />
         <Route path="users/:userId" element={<UserRecordPage />} />
-        <Route path="roles" element={<RolesReferencePage />} />
         <Route path="districts" element={<DistrictRegistryPage />} />
         <Route path="risk" element={<RiskIntelligencePage />} />
         <Route path="emergencies" element={<EmergencyOversightPage />} />

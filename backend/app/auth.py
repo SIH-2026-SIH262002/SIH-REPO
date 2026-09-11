@@ -71,6 +71,24 @@ def decode_jwt(token: str) -> dict:
         if "exp" in payload and time.time() > payload["exp"]:
             raise ValueError("JWT token has expired")
 
+        # CRITICAL: Express-issued tokens (backend/auth-service -- the
+        # authoritative identity backend for the Admin Console, see
+        # docs/ADMIN_CONSOLE_IMPLEMENTATION_SPEC.md §H.1) nest identity
+        # fields under `claims` rather than at the top level:
+        # {sub, sid, claims: {role, roles, fullName, email, phone, district,
+        # organization, tenant}, tenant}. Both services share the same
+        # JWT_SECRET by design, so a signature-valid Express token reaches
+        # here, but without this hoist every field below read `role`/
+        # `district`/etc. as absent -- silently downgrading every Admin
+        # session to the FIELD_OFFICER default and 403/401-ing every
+        # ADMIN-gated route. Verified live: without this fix, an Express
+        # Admin token got 401 from every require_roles(["ADMIN", ...]) route.
+        if isinstance(payload.get("claims"), dict):
+            claims = payload["claims"]
+            for key in ("role", "roles", "fullName", "email", "phone", "district", "organization"):
+                if key in claims and key not in payload:
+                    payload[key] = claims[key]
+
         # Normalize role in payload
         if "role" in payload:
             payload["role"] = normalize_role(payload["role"])

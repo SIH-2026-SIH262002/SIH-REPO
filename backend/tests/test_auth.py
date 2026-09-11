@@ -10,6 +10,11 @@ login/register/refresh/me endpoints and the demo/governance sensor controls:
   * ADMIN-only provisioning, with role/district validated server-side
   * self-protection on the acting Administrator's own account (register)
   * ADMIN/EMERGENCY_OPERATOR-only storm injection
+  * a token shaped like the Express auth-service's (nested `claims.role`,
+    not a top-level `role`) is still correctly understood as ADMIN --
+    verified live against a running auth-service during this phase: without
+    this hoist, a real Express-issued Admin token 401'd on every single
+    ADMIN-gated FastAPI route.
 
 NOTE: full account lifecycle (list/suspend/reactivate/deactivate/change-role/
 change-district) is implemented and tested in backend/auth-service (Express +
@@ -207,13 +212,57 @@ def test_refresh_rejects_token_for_unknown_subject():
 # Sensor simulation controls (Admin / Emergency Operator governance action)
 # ---------------------------------------------------------------------------
 
-def test_model_info_exposes_real_metrics_and_feature_importances():
+def test_model_info_requires_authentication():
     res = client.get("/api/risk/model-info")
+    assert res.status_code == 401
+
+
+def test_model_info_exposes_real_metrics_and_feature_importances():
+    token = _login(OFFICER_CREDS)
+    res = client.get("/api/risk/model-info", headers=_auth_header(token))
     assert res.status_code == 200
     body = res.json()
     assert "metrics" in body and "feature_importances" in body
     assert 0 < body["metrics"]["r2"] <= 1
     assert len(body["feature_importances"]) > 0
+
+
+def test_express_shaped_token_with_nested_claims_role_is_understood_as_admin():
+    """Regression test for the cross-service claim-shape bug found and fixed
+    live during this phase (backend/app/auth.py decode_jwt): a real
+    Express-issued token nests identity fields under `claims` rather than at
+    the payload's top level. Build a token in that exact shape here (rather
+    than depending on the Node service being reachable during a Python test
+    run) and confirm the FastAPI gateway still resolves it to ADMIN."""
+    jwt_secret = os.getenv("JWT_SECRET", "super-secret-demo-key-123")
+    now = int(time.time())
+    express_shaped_token = jwt.encode(
+        {
+            "sub": "user_expresslike01",
+            "sid": "sess_expresslike",
+            "claims": {
+                "roles": ["ADMIN"],
+                "role": "ADMIN",
+                "fullName": "Express-Issued Admin",
+                "email": "admin@nerlogisense.gov.in",
+                "district": "East Khasi Hills",
+                "organization": "NER LogiSense Command Center",
+                "tenant": "NER_LOGISTICS",
+            },
+            "tenant": None,
+            "iat": now,
+            "exp": now + 900,
+        },
+        jwt_secret,
+        algorithm="HS256",
+    )
+
+    res = client.post(
+        "/api/sensors/inject-storm",
+        headers=_auth_header(express_shaped_token),
+        json={"node_key": "SHL"},
+    )
+    assert res.status_code == 200, res.text
 
 
 def test_inject_storm_requires_admin_or_emergency_operator_role():
@@ -235,3 +284,38 @@ def test_inject_storm_requires_admin_or_emergency_operator_role():
         json={"node_key": "GHY"},
     )
     assert ok.status_code == 200
+
+
+def test_sensors_list_and_detail_require_authentication():
+    """Sensor telemetry feeds the Logistics Operator risk view -- it must not
+    be publicly readable without a session, even though any authenticated
+    role may read it."""
+    assert client.get("/api/sensors").status_code == 401
+    assert client.get("/api/sensors/GUWAHATI").status_code == 401
+
+    token = _login(OFFICER_CREDS)
+    res = client.get("/api/sensors", headers=_auth_header(token))
+    assert res.status_code == 200
+    assert len(res.json()) > 0
+
+
+def test_vehicles_list_requires_authentication():
+    assert client.get("/api/vehicles").status_code == 401
+
+    token = _login(OFFICER_CREDS)
+    res = client.get("/api/vehicles", headers=_auth_header(token))
+    assert res.status_code == 200
+
+
+def test_driver_assigned_vehicle_never_fabricates_a_default_assignment():
+    """Regression test: /api/vehicles/me used to hand an unmatched driver the
+    first vehicle in the fleet as a 'demo fallback'. That is exactly the
+    fabricated-operational-data pattern this service must not produce --
+    a driver with no real assignment must see assigned: False, never
+    someone else's vehicle."""
+    admin_token = _login(ADMIN_CREDS)  # no driver identity matches any VEHICLES entry
+    res = client.get("/api/vehicles/me", headers=_auth_header(admin_token))
+    assert res.status_code == 200
+    body = res.json()
+    assert body["assigned"] is False
+    assert "vehicle" not in body
