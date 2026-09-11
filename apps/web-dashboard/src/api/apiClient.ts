@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+// This client talks to the Express auth-service (identity, sessions, and the
+// Admin Console's user directory/lifecycle) -- NOT the FastAPI operational
+// gateway (see services/apiService.ts for that). Two separate backends, two
+// separate base URLs; do not collapse them into one env var.
+const API_BASE_URL = import.meta.env.VITE_AUTH_URL || 'http://localhost:3000';
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

@@ -14,7 +14,10 @@ import { NotificationsOutboxView } from '../components/views/NotificationsOutbox
 import { SettingsView } from '../components/views/SettingsView';
 
 // Role Specific Dashboard Views
-import { AdminDashboardView } from '../components/dashboard/roles/AdminDashboardView';
+// Note: ADMIN no longer renders a view here -- the Admin Console lives at
+// /admin/* (routes/AdminRoutes.tsx) and is reached via its own ProtectedRoute,
+// not this tab-switcher. The old AdminDashboardView.tsx (fabricated infra
+// metrics, no real backend behind it) has been removed.
 import { LogisticsOperatorView } from '../components/dashboard/roles/LogisticsOperatorView';
 import { EmergencyOperatorView } from '../components/dashboard/roles/EmergencyOperatorView';
 import { FieldOfficerDashboardView } from '../components/dashboard/roles/FieldOfficerDashboardView';
@@ -160,8 +163,6 @@ export const DashboardPage: React.FC = () => {
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
               {/* Authoritative Role Dashboard View */}
-              {activeRole === 'ADMIN' && <AdminDashboardView />}
-
               {activeRole === 'LOGISTICS_OPERATOR' && (
                 <div className="space-y-6">
                   {/* Logistics Operational Command Center Workflow */}

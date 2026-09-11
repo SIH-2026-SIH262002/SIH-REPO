@@ -31,3 +31,13 @@ def predict(payload: RiskInput):
 @router.get("/feature-importance")
 def importance():
     return ml_service.feature_importances()
+
+
+@router.get("/model-info")
+def model_info():
+    """Real model transparency: algorithm name, training-time metrics (MAE,
+    R^2, ROC-AUC from ml/training_metrics.json), and feature importances.
+    ml_service.get_model_info() already existed but was never wired to a
+    route -- this exposes it rather than hardcoding these numbers in the
+    frontend, which would go stale and misrepresent them as invented."""
+    return ml_service.get_model_info()

@@ -91,15 +91,16 @@ def decode_jwt(token: str) -> dict:
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security_scheme),
 ) -> dict:
+    # SECURITY: A missing or malformed Authorization header must be rejected
+    # with 401, never silently upgraded to a synthetic authenticated identity.
+    # NER LogiSense is a closed-provisioning system (docs/architecture/ROLE_MODEL.md) --
+    # there is no such thing as an anonymous operator.
     if not credentials:
-        # Development / Demo fallback user when no token provided in demo mode
-        return {
-            "sub": "demo-user-123",
-            "role": "LOGISTICS_OPERATOR",
-            "roles": ["LOGISTICS_OPERATOR"],
-            "fullName": "Demo Operator",
-            "district": "Kamrup Metro"
-        }
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return decode_jwt(credentials.credentials)
 
 

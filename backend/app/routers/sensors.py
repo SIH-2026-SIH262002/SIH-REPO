@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 
@@ -7,6 +7,7 @@ from app.services.simulation_service import (
     inject_storm_event,
     reset_simulation_state,
 )
+from app.auth import require_roles
 
 router = APIRouter(prefix="/api/sensors", tags=["sensors"])
 
@@ -32,7 +33,10 @@ def get_sensor(node_key: str):
 
 
 @router.post("/inject-storm")
-def inject_storm(payload: StormInjectionRequest):
+def inject_storm(
+    payload: StormInjectionRequest,
+    user: dict = Depends(require_roles(["ADMIN", "EMERGENCY_OPERATOR"])),
+):
     result = inject_storm_event(
         node_key=payload.node_key,
         duration_ticks=payload.duration_ticks,
@@ -49,5 +53,5 @@ def inject_storm(payload: StormInjectionRequest):
 
 
 @router.post("/reset-scenario")
-def reset_scenario():
+def reset_scenario(user: dict = Depends(require_roles(["ADMIN", "EMERGENCY_OPERATOR"]))):
     return reset_simulation_state()
