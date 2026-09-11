@@ -2,10 +2,11 @@ import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../src/context/AuthContext';
-import { Colors } from '../src/constants/theme';
+import { useTheme } from '../src/context/ThemeContext';
 
 export default function Index() {
   const { user, token, isLoading } = useAuth();
+  const { colors } = useTheme();
   const router = useRouter();
 
   useEffect(() => {
@@ -19,10 +20,12 @@ export default function Index() {
   }, [isLoading, user, token]);
 
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={Colors.primary} />
-      <Text style={styles.text}>NER LogiSense</Text>
-      <Text style={styles.subtext}>Connecting to Risk & Accessibility Intelligence Platform...</Text>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <ActivityIndicator size="large" color={colors.primary} />
+      <Text style={[styles.text, { color: colors.text }]}>NER LogiSense</Text>
+      <Text style={[styles.subtext, { color: colors.textMuted }]}>
+        Connecting to Risk & Accessibility Intelligence Platform...
+      </Text>
     </View>
   );
 }
@@ -30,7 +33,6 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.background,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 20,
@@ -38,13 +40,11 @@ const styles = StyleSheet.create({
   text: {
     fontSize: 24,
     fontWeight: '800',
-    color: Colors.text,
     marginTop: 16,
     letterSpacing: -0.5,
   },
   subtext: {
     fontSize: 13,
-    color: Colors.textMuted,
     marginTop: 6,
     textAlign: 'center',
   },

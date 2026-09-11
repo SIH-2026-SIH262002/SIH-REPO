@@ -12,7 +12,8 @@ import { Header } from '../../src/components/Header';
 import { LoadingSkeleton } from '../../src/components/LoadingSkeleton';
 import { vehiclesApi } from '../../src/api/vehicles';
 import { Vehicle } from '../../src/types';
-import { Colors, Spacing, BorderRadius } from '../../src/constants/theme';
+import { Spacing, BorderRadius } from '../../src/constants/theme';
+import { useTheme } from '../../src/context/ThemeContext';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -23,6 +24,7 @@ export default function VehiclesScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const { colors } = useTheme();
   const router = useRouter();
 
   const fetchVehicles = async () => {
@@ -50,90 +52,94 @@ export default function VehiclesScreen() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'EN_ROUTE':
-        return Colors.success;
+        return colors.success;
       case 'IDLE':
-        return Colors.warning;
+        return colors.warning;
       case 'EMERGENCY':
-        return Colors.sosRed;
+        return colors.sosRed;
       default:
-        return Colors.primary;
+        return colors.primary;
     }
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
-        title="Fleet Vehicles"
-        subtitle="Real-time Logistics & Driver Telemetry"
+        title="Fleet Tracking"
+        subtitle="Live Vehicle GPS, Status & Telematics"
         rightActionIcon="refresh-outline"
         onRightAction={fetchVehicles}
       />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={Colors.primary}
-          />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
       >
         {errorMsg ? (
-          <View style={styles.errorBox}>
-            <Ionicons name="alert-circle" size={18} color={Colors.sosRed} />
-            <Text style={styles.errorText}>{errorMsg}</Text>
+          <View style={[styles.errorBox, { backgroundColor: `${colors.sosRed}20` }]}>
+            <Ionicons name="alert-circle" size={18} color={colors.sosRed} />
+            <Text style={[styles.errorText, { color: colors.sosRed }]}>{errorMsg}</Text>
           </View>
         ) : null}
 
-        {loading && !vehicles.length ? (
-          <LoadingSkeleton rows={4} />
+        {loading ? (
+          <LoadingSkeleton rows={3} />
+        ) : vehicles.length === 0 ? (
+          <Text style={{ color: colors.textMuted, textAlign: 'center', marginTop: 40 }}>
+            No vehicles currently registered.
+          </Text>
         ) : (
           vehicles.map((v) => {
             const statusColor = getStatusColor(v.status);
             return (
-              <View key={v.id} style={styles.card}>
+              <View
+                key={v.id}
+                style={[
+                  styles.card,
+                  { backgroundColor: colors.card, borderColor: colors.cardBorder },
+                ]}
+              >
                 <View style={styles.cardHeader}>
                   <View style={styles.leftHeader}>
-                    <View style={[styles.iconBox, { backgroundColor: `${Colors.primary}20` }]}>
-                      <Ionicons name="bus" size={20} color={Colors.primary} />
+                    <View style={[styles.iconBox, { backgroundColor: `${colors.primary}20` }]}>
+                      <Ionicons name="bus" size={20} color={colors.primary} />
                     </View>
                     <View>
-                      <Text style={styles.vehicleId}>{v.id}</Text>
-                      <Text style={styles.driverName}>{v.driver_name} ({v.phone})</Text>
+                      <Text style={[styles.vehicleId, { color: colors.text }]}>{v.id}</Text>
+                      <Text style={[styles.driverName, { color: colors.textMuted }]}>Driver: {v.driver_name}</Text>
                     </View>
                   </View>
 
-                  <View style={[styles.statusBadge, { backgroundColor: `${statusColor}20`, borderColor: `${statusColor}50` }]}>
+                  <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15`, borderColor: `${statusColor}40` }]}>
                     <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
                     <Text style={[styles.statusText, { color: statusColor }]}>{v.status}</Text>
                   </View>
                 </View>
 
-                <View style={styles.infoGrid}>
+                {/* Details Grid */}
+                <View style={[styles.infoGrid, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoLabel}>Route</Text>
-                    <Text style={styles.infoValue}>{v.current_route || 'Shillong - Guwahati'}</Text>
+                    <Text style={[styles.infoLabel, { color: colors.textSubtle }]}>ROUTE</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>{v.current_route || 'Unassigned'}</Text>
                   </View>
-
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoLabel}>Speed</Text>
-                    <Text style={styles.infoValue}>{v.speed_kmh || 0} km/h</Text>
+                    <Text style={[styles.infoLabel, { color: colors.textSubtle }]}>SPEED</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>{v.speed_kmh || 0} km/h</Text>
                   </View>
-
                   <View style={styles.infoCol}>
-                    <Text style={styles.infoLabel}>GPS Coordinates</Text>
-                    <Text style={styles.infoValue}>{v.lat.toFixed(4)}°, {v.lon.toFixed(4)}°</Text>
+                    <Text style={[styles.infoLabel, { color: colors.textSubtle }]}>PHONE</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]}>{v.phone || 'N/A'}</Text>
                   </View>
                 </View>
 
+                {/* View on Map Button */}
                 <TouchableOpacity
-                  style={styles.mapBtn}
+                  style={[styles.mapBtn, { backgroundColor: colors.primary }]}
                   onPress={() => router.push('/(tabs)/map')}
                   activeOpacity={0.8}
                 >
-                  <Ionicons name="map" size={14} color="#fff" />
-                  <Text style={styles.mapBtnText}>View on Live Map</Text>
+                  <Ionicons name="navigate-outline" size={16} color="#fff" />
+                  <Text style={styles.mapBtnText}>Locate on Radar Map</Text>
                 </TouchableOpacity>
               </View>
             );
@@ -147,7 +153,6 @@ export default function VehiclesScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scrollContent: {
     padding: Spacing.md,
@@ -156,21 +161,17 @@ const styles = StyleSheet.create({
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${Colors.sosRed}20`,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     gap: 8,
   },
   errorText: {
-    color: Colors.sosRed,
     fontSize: 13,
   },
   card: {
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -193,11 +194,9 @@ const styles = StyleSheet.create({
   vehicleId: {
     fontSize: 16,
     fontWeight: '800',
-    color: Colors.text,
   },
   driverName: {
     fontSize: 12,
-    color: Colors.textMuted,
     marginTop: 2,
   },
   statusBadge: {
@@ -221,12 +220,10 @@ const styles = StyleSheet.create({
   infoGrid: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    backgroundColor: Colors.background,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   infoCol: {
     flex: 1,
@@ -234,17 +231,14 @@ const styles = StyleSheet.create({
   infoLabel: {
     fontSize: 10,
     fontWeight: '800',
-    color: Colors.textSubtle,
     textTransform: 'uppercase',
   },
   infoValue: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.text,
     marginTop: 4,
   },
   mapBtn: {
-    backgroundColor: Colors.primary,
     paddingVertical: 10,
     borderRadius: BorderRadius.md,
     flexDirection: 'row',

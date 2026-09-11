@@ -8,3 +8,5 @@ backend/uploads/*
 !backend/uploads/.gitkeep
 backend/*.db
 .DS_Store
+.expo/
+*.apk

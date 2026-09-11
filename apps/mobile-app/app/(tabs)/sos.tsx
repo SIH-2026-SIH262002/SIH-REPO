@@ -15,13 +15,15 @@ import { Card } from '../../src/components/Card';
 import { sosApi } from '../../src/api/sos';
 import { locationService } from '../../src/services/locationService';
 import { useAuth } from '../../src/context/AuthContext';
+import { useTheme } from '../../src/context/ThemeContext';
 import { SOSEvent } from '../../src/types';
-import { Colors, Spacing, BorderRadius } from '../../src/constants/theme';
+import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 
 export default function SOSScreen() {
   const { user } = useAuth();
+  const { colors } = useTheme();
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [issueType, setIssueType] = useState('vehicle_breakdown');
@@ -64,7 +66,7 @@ export default function SOSScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
         title="EMERGENCY SOS"
         subtitle="One-Tap Emergency Dispatch System"
@@ -73,21 +75,21 @@ export default function SOSScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Status Alerts */}
         {successMsg ? (
-          <View style={styles.successCard}>
-            <Ionicons name="checkmark-circle" size={24} color={Colors.success} />
+          <View style={[styles.successCard, { backgroundColor: `${colors.success}20`, borderColor: `${colors.success}40` }]}>
+            <Ionicons name="checkmark-circle" size={24} color={colors.success} />
             <View style={styles.alertTextWrapper}>
-              <Text style={styles.successTitle}>SOS DISPATCHED</Text>
-              <Text style={styles.successSub}>{successMsg}</Text>
+              <Text style={[styles.successTitle, { color: colors.success }]}>SOS DISPATCHED</Text>
+              <Text style={[styles.successSub, { color: colors.text }]}>{successMsg}</Text>
             </View>
           </View>
         ) : null}
 
         {errorMsg ? (
-          <View style={styles.errorCard}>
-            <Ionicons name="alert-circle" size={24} color={Colors.sosRed} />
+          <View style={[styles.errorCard, { backgroundColor: `${colors.sosRed}20`, borderColor: `${colors.sosRed}40` }]}>
+            <Ionicons name="alert-circle" size={24} color={colors.sosRed} />
             <View style={styles.alertTextWrapper}>
-              <Text style={styles.errorTitle}>DISPATCH FAILED</Text>
-              <Text style={styles.errorSub}>{errorMsg}</Text>
+              <Text style={[styles.errorTitle, { color: colors.sosRed }]}>DISPATCH FAILED</Text>
+              <Text style={[styles.errorSub, { color: colors.text }]}>{errorMsg}</Text>
             </View>
           </View>
         ) : null}
@@ -95,7 +97,7 @@ export default function SOSScreen() {
         {/* Huge Prominent SOS Trigger Button */}
         <View style={styles.sosButtonContainer}>
           <TouchableOpacity
-            style={styles.sosCircle}
+            style={[styles.sosCircle, { backgroundColor: colors.sosRed, borderColor: colors.sosGlow }]}
             onPress={() => setConfirmModalVisible(true)}
             activeOpacity={0.85}
           >
@@ -110,16 +112,16 @@ export default function SOSScreen() {
         {/* Active Emergency Info */}
         <Card title="Emergency Response Contacts" icon="call">
           <View style={styles.contactRow}>
-            <Ionicons name="call" size={16} color={Colors.sosRed} />
-            <Text style={styles.contactText}>State Disaster Helpline: 1070 / 1077</Text>
+            <Ionicons name="call" size={16} color={colors.sosRed} />
+            <Text style={[styles.contactText, { color: colors.text }]}>State Disaster Helpline: 1070 / 1077</Text>
           </View>
           <View style={styles.contactRow}>
-            <Ionicons name="shield-checkmark" size={16} color={Colors.primary} />
-            <Text style={styles.contactText}>NER Command Center: +91 9999900001</Text>
+            <Ionicons name="shield-checkmark" size={16} color={colors.primary} />
+            <Text style={[styles.contactText, { color: colors.text }]}>NER Command Center: +91 9999900001</Text>
           </View>
           <View style={styles.contactRow}>
-            <Ionicons name="medical" size={16} color={Colors.success} />
-            <Text style={styles.contactText}>Ambulance Emergency: 108</Text>
+            <Ionicons name="medical" size={16} color={colors.success} />
+            <Text style={[styles.contactText, { color: colors.text }]}>Ambulance Emergency: 108</Text>
           </View>
         </Card>
 
@@ -127,20 +129,20 @@ export default function SOSScreen() {
         {lastSOS && (
           <Card title="Recent Active SOS Status" icon="time">
             <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Event ID:</Text>
-              <Text style={styles.statusVal}>{lastSOS.id}</Text>
+              <Text style={[styles.statusLabel, { color: colors.textMuted }]}>Event ID:</Text>
+              <Text style={[styles.statusVal, { color: colors.text }]}>{lastSOS.id}</Text>
             </View>
             <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Driver / Officer:</Text>
-              <Text style={styles.statusVal}>{lastSOS.driver_name} ({lastSOS.phone})</Text>
+              <Text style={[styles.statusLabel, { color: colors.textMuted }]}>Driver / Officer:</Text>
+              <Text style={[styles.statusVal, { color: colors.text }]}>{lastSOS.driver_name} ({lastSOS.phone})</Text>
             </View>
             <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Location Captured:</Text>
-              <Text style={styles.statusVal}>{lastSOS.lat.toFixed(4)}°, {lastSOS.lon.toFixed(4)}°</Text>
+              <Text style={[styles.statusLabel, { color: colors.textMuted }]}>Location Captured:</Text>
+              <Text style={[styles.statusVal, { color: colors.text }]}>{lastSOS.lat.toFixed(4)}°, {lastSOS.lon.toFixed(4)}°</Text>
             </View>
             <View style={styles.statusRow}>
-              <Text style={styles.statusLabel}>Dispatch Status:</Text>
-              <Text style={[styles.statusVal, { color: Colors.sosRed, fontWeight: '800' }]}>
+              <Text style={[styles.statusLabel, { color: colors.textMuted }]}>Dispatch Status:</Text>
+              <Text style={[styles.statusVal, { color: colors.sosRed, fontWeight: '800' }]}>
                 {lastSOS.status}
               </Text>
             </View>
@@ -156,18 +158,18 @@ export default function SOSScreen() {
         onRequestClose={() => setConfirmModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
+          <View style={[styles.modalContent, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
             <View style={styles.modalHeader}>
-              <Ionicons name="warning" size={32} color={Colors.sosRed} />
-              <Text style={styles.modalTitle}>CONFIRM EMERGENCY SOS</Text>
+              <Ionicons name="warning" size={32} color={colors.sosRed} />
+              <Text style={[styles.modalTitle, { color: colors.sosRed }]}>CONFIRM EMERGENCY SOS</Text>
             </View>
 
-            <Text style={styles.modalBodyText}>
+            <Text style={[styles.modalBodyText, { color: colors.textMuted }]}>
               You are about to send an urgent emergency alert with your real-time GPS position to district authorities.
             </Text>
 
             {/* Issue Selector */}
-            <Text style={styles.inputLabel}>ISSUE TYPE</Text>
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>ISSUE TYPE</Text>
             <View style={styles.issueTypesRow}>
               {[
                 { id: 'vehicle_breakdown', label: 'Breakdown' },
@@ -177,10 +179,20 @@ export default function SOSScreen() {
               ].map((item) => (
                 <TouchableOpacity
                   key={item.id}
-                  style={[styles.issueChip, issueType === item.id && styles.issueChipActive]}
+                  style={[
+                    styles.issueChip,
+                    { backgroundColor: colors.background, borderColor: colors.cardBorder },
+                    issueType === item.id && { backgroundColor: colors.sosRed, borderColor: colors.sosRed },
+                  ]}
                   onPress={() => setIssueType(item.id)}
                 >
-                  <Text style={[styles.issueChipText, issueType === item.id && styles.issueTextActive]}>
+                  <Text
+                    style={[
+                      styles.issueChipText,
+                      { color: colors.textMuted },
+                      issueType === item.id && styles.issueTextActive,
+                    ]}
+                  >
                     {item.label}
                   </Text>
                 </TouchableOpacity>
@@ -188,27 +200,30 @@ export default function SOSScreen() {
             </View>
 
             {/* Additional Message */}
-            <Text style={styles.inputLabel}>ADDITIONAL DETAILS (OPTIONAL)</Text>
+            <Text style={[styles.inputLabel, { color: colors.textMuted }]}>ADDITIONAL DETAILS (OPTIONAL)</Text>
             <TextInput
-              style={styles.modalInput}
+              style={[
+                styles.modalInput,
+                { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text },
+              ]}
               value={message}
               onChangeText={setMessage}
               placeholder="e.g. Stuck near kilometer 42 due to severe rockfall..."
-              placeholderTextColor={Colors.textSubtle}
+              placeholderTextColor={colors.textSubtle}
             />
 
             {/* Action Buttons */}
             <View style={styles.modalActionsRow}>
               <TouchableOpacity
-                style={styles.cancelBtn}
+                style={[styles.cancelBtn, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}
                 onPress={() => setConfirmModalVisible(false)}
                 disabled={sending}
               >
-                <Text style={styles.cancelBtnText}>Cancel</Text>
+                <Text style={[styles.cancelBtnText, { color: colors.textMuted }]}>Cancel</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={[styles.confirmBtn, sending && styles.btnDisabled]}
+                style={[styles.confirmBtn, { backgroundColor: colors.sosRed }, sending && styles.btnDisabled]}
                 onPress={triggerEmergency}
                 disabled={sending}
               >
@@ -232,7 +247,6 @@ export default function SOSScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scrollContent: {
     padding: Spacing.md,
@@ -241,40 +255,32 @@ const styles = StyleSheet.create({
   successCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${Colors.success}20`,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: `${Colors.success}40`,
     gap: Spacing.sm,
   },
   successTitle: {
-    color: Colors.success,
     fontSize: 14,
     fontWeight: '800',
   },
   successSub: {
-    color: Colors.text,
     fontSize: 12,
     marginTop: 2,
   },
   errorCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${Colors.sosRed}20`,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: `${Colors.sosRed}40`,
     gap: Spacing.sm,
   },
   errorTitle: {
-    color: Colors.sosRed,
     fontSize: 14,
     fontWeight: '800',
   },
   errorSub: {
-    color: Colors.text,
     fontSize: 12,
     marginTop: 2,
   },
@@ -290,12 +296,10 @@ const styles = StyleSheet.create({
     width: 220,
     height: 220,
     borderRadius: 110,
-    backgroundColor: Colors.sosRed,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 6,
-    borderColor: Colors.sosGlow,
-    shadowColor: Colors.sosRed,
+    shadowColor: '#dc2626',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.6,
     shadowRadius: 16,
@@ -328,7 +332,6 @@ const styles = StyleSheet.create({
   },
   contactText: {
     fontSize: 13,
-    color: Colors.text,
     fontWeight: '600',
   },
   statusRow: {
@@ -338,11 +341,9 @@ const styles = StyleSheet.create({
   },
   statusLabel: {
     fontSize: 12,
-    color: Colors.textMuted,
   },
   statusVal: {
     fontSize: 12,
-    color: Colors.text,
     fontWeight: '700',
   },
   modalOverlay: {
@@ -352,11 +353,9 @@ const styles = StyleSheet.create({
     padding: Spacing.lg,
   },
   modalContent: {
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   modalHeader: {
     alignItems: 'center',
@@ -366,19 +365,16 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontWeight: '900',
-    color: Colors.sosRed,
     letterSpacing: 0.5,
   },
   modalBodyText: {
     fontSize: 13,
-    color: Colors.textMuted,
     textAlign: 'center',
     marginBottom: Spacing.md,
   },
   inputLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.textMuted,
     marginBottom: 6,
   },
   issueTypesRow: {
@@ -391,29 +387,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: BorderRadius.round,
-    backgroundColor: Colors.background,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  issueChipActive: {
-    backgroundColor: Colors.sosRed,
-    borderColor: Colors.sosRed,
   },
   issueChipText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textMuted,
   },
   issueTextActive: {
     color: '#fff',
   },
   modalInput: {
-    backgroundColor: Colors.inputBg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
     padding: Spacing.md,
-    color: Colors.text,
     fontSize: 13,
     marginBottom: Spacing.lg,
   },
@@ -423,21 +409,17 @@ const styles = StyleSheet.create({
   },
   cancelBtn: {
     flex: 1,
-    backgroundColor: Colors.background,
     height: 48,
     borderRadius: BorderRadius.md,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   cancelBtnText: {
-    color: Colors.textMuted,
     fontWeight: '700',
   },
   confirmBtn: {
     flex: 1.5,
-    backgroundColor: Colors.sosRed,
     height: 48,
     borderRadius: BorderRadius.md,
     flexDirection: 'row',

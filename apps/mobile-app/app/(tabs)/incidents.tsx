@@ -17,15 +17,16 @@ import { incidentsApi } from '../../src/api/incidents';
 import { locationService } from '../../src/services/locationService';
 import { useAuth } from '../../src/context/AuthContext';
 import { useOffline } from '../../src/context/OfflineContext';
+import { useTheme } from '../../src/context/ThemeContext';
 import { IncidentReport } from '../../src/types';
-import { Colors, Spacing, BorderRadius } from '../../src/constants/theme';
-import { getApiErrorMessage } from '../../src/api/client';
+import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { OfflineQueueBanner } from '../../src/components/OfflineQueueBanner';
 
 export default function IncidentsScreen() {
   const { user } = useAuth();
   const { enqueueReport } = useOffline();
+  const { colors } = useTheme();
 
   const [incidentType, setIncidentType] = useState<'landslide' | 'flood' | 'road_blocked' | 'vibration' | 'other'>('landslide');
   const [description, setDescription] = useState('');
@@ -155,7 +156,7 @@ export default function IncidentsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
         title="Incident Reporting"
         subtitle="Submit Landslide & Road Hazard Logs"
@@ -170,18 +171,20 @@ export default function IncidentsScreen() {
           <View
             style={[
               styles.statusBox,
-              statusMsg.type === 'error' ? styles.statusError : styles.statusSuccess,
+              statusMsg.type === 'error'
+                ? { backgroundColor: `${colors.sosRed}20`, borderColor: `${colors.sosRed}40` }
+                : { backgroundColor: `${colors.success}20`, borderColor: `${colors.success}40` },
             ]}
           >
             <Ionicons
               name={statusMsg.type === 'error' ? 'alert-circle' : 'checkmark-circle'}
               size={18}
-              color={statusMsg.type === 'error' ? Colors.sosRed : Colors.success}
+              color={statusMsg.type === 'error' ? colors.sosRed : colors.success}
             />
             <Text
               style={[
                 styles.statusText,
-                { color: statusMsg.type === 'error' ? Colors.sosRed : Colors.success },
+                { color: statusMsg.type === 'error' ? colors.sosRed : colors.success },
               ]}
             >
               {statusMsg.text}
@@ -192,15 +195,19 @@ export default function IncidentsScreen() {
         {/* Submit Form Card */}
         <Card title="Report New Incident" icon="add-circle">
           {/* Incident Type Selectors */}
-          <Text style={styles.fieldLabel}>INCIDENT CATEGORY</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>INCIDENT CATEGORY</Text>
           <View style={styles.typesRow}>
             {(['landslide', 'flood', 'road_blocked', 'vibration', 'other'] as const).map((type) => (
               <TouchableOpacity
                 key={type}
-                style={[styles.typeChip, incidentType === type && styles.typeChipActive]}
+                style={[
+                  styles.typeChip,
+                  { backgroundColor: colors.background, borderColor: colors.cardBorder },
+                  incidentType === type && { backgroundColor: colors.primary, borderColor: colors.primary },
+                ]}
                 onPress={() => setIncidentType(type)}
               >
-                <Text style={[styles.typeChipText, incidentType === type && styles.typeTextActive]}>
+                <Text style={[styles.typeChipText, { color: colors.textMuted }, incidentType === type && styles.typeTextActive]}>
                   {type.replace('_', ' ')}
                 </Text>
               </TouchableOpacity>
@@ -208,36 +215,39 @@ export default function IncidentsScreen() {
           </View>
 
           {/* Description Input */}
-          <Text style={styles.fieldLabel}>DESCRIPTION & IMPACT</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>DESCRIPTION & IMPACT</Text>
           <TextInput
-            style={styles.textArea}
+            style={[
+              styles.textArea,
+              { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text },
+            ]}
             value={description}
             onChangeText={setDescription}
             placeholder="Describe debris size, road blockage status, or immediate risk..."
-            placeholderTextColor={Colors.textSubtle}
+            placeholderTextColor={colors.textSubtle}
             multiline
             numberOfLines={3}
           />
 
           {/* GPS Coordinates Bar */}
-          <View style={styles.gpsRow}>
+          <View style={[styles.gpsRow, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
             <View style={styles.gpsInfo}>
-              <Ionicons name="location" size={16} color={Colors.primary} />
-              <Text style={styles.gpsText}>
+              <Ionicons name="location" size={16} color={colors.primary} />
+              <Text style={[styles.gpsText, { color: colors.text }]}>
                 GPS: {lat.toFixed(4)}°, {lon.toFixed(4)}°
               </Text>
             </View>
             <TouchableOpacity style={styles.gpsRefreshBtn} onPress={captureGPS} disabled={fetchingGPS}>
               {fetchingGPS ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
+                <ActivityIndicator size="small" color={colors.primary} />
               ) : (
-                <Text style={styles.gpsRefreshText}>Update GPS</Text>
+                <Text style={[styles.gpsRefreshText, { color: colors.primary }]}>Update GPS</Text>
               )}
             </TouchableOpacity>
           </View>
 
           {/* Photo Attachment Bar */}
-          <Text style={styles.fieldLabel}>PHOTO EVIDENCE (OPTIONAL)</Text>
+          <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>PHOTO EVIDENCE (OPTIONAL)</Text>
           {photoUri ? (
             <View style={styles.imagePreviewContainer}>
               <Image source={{ uri: photoUri }} style={styles.imagePreview} />
@@ -247,20 +257,26 @@ export default function IncidentsScreen() {
             </View>
           ) : (
             <View style={styles.photoActionsRow}>
-              <TouchableOpacity style={styles.photoBtn} onPress={takePhoto}>
-                <Ionicons name="camera" size={18} color={Colors.primary} />
-                <Text style={styles.photoBtnText}>Camera</Text>
+              <TouchableOpacity
+                style={[styles.photoBtn, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}
+                onPress={takePhoto}
+              >
+                <Ionicons name="camera" size={18} color={colors.primary} />
+                <Text style={[styles.photoBtnText, { color: colors.text }]}>Camera</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.photoBtn} onPress={pickImage}>
-                <Ionicons name="images" size={18} color={Colors.primary} />
-                <Text style={styles.photoBtnText}>Gallery</Text>
+              <TouchableOpacity
+                style={[styles.photoBtn, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}
+                onPress={pickImage}
+              >
+                <Ionicons name="images" size={18} color={colors.primary} />
+                <Text style={[styles.photoBtnText, { color: colors.text }]}>Gallery</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitBtn, submitting && styles.btnDisabled]}
+            style={[styles.submitBtn, { backgroundColor: colors.primary }, submitting && styles.btnDisabled]}
             onPress={handleSubmit}
             disabled={submitting}
             activeOpacity={0.8}
@@ -279,20 +295,20 @@ export default function IncidentsScreen() {
         {/* Submitted Incidents Log */}
         <Card title="Submitted Incident Reports Log" icon="list">
           {loadingList ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
+            <ActivityIndicator size="small" color={colors.primary} />
           ) : reportsList.length === 0 ? (
-            <Text style={styles.emptyText}>No incident reports logged yet.</Text>
+            <Text style={[styles.emptyText, { color: colors.textMuted }]}>No incident reports logged yet.</Text>
           ) : (
             reportsList.map((rep, idx) => (
-              <View key={rep.id || idx} style={styles.reportItem}>
+              <View key={rep.id || idx} style={[styles.reportItem, { borderBottomColor: colors.cardBorder }]}>
                 <View style={styles.reportHeader}>
-                  <Text style={styles.reportType}>{rep.incident_type.toUpperCase()}</Text>
-                  <Text style={styles.reportTime}>
+                  <Text style={[styles.reportType, { color: colors.primary }]}>{rep.incident_type.toUpperCase()}</Text>
+                  <Text style={[styles.reportTime, { color: colors.textSubtle }]}>
                     {rep.timestamp ? new Date(rep.timestamp).toLocaleDateString() : 'Today'}
                   </Text>
                 </View>
-                <Text style={styles.reportDesc}>{rep.description}</Text>
-                <Text style={styles.reportMeta}>
+                <Text style={[styles.reportDesc, { color: colors.text }]}>{rep.description}</Text>
+                <Text style={[styles.reportMeta, { color: colors.textMuted }]}>
                   Reporter: {rep.reporter_name} • Location: {rep.lat.toFixed(3)}°, {rep.lon.toFixed(3)}°
                 </Text>
               </View>
@@ -307,7 +323,6 @@ export default function IncidentsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scrollContent: {
     padding: Spacing.md,
@@ -321,14 +336,6 @@ const styles = StyleSheet.create({
     gap: 8,
     borderWidth: 1,
   },
-  statusError: {
-    backgroundColor: `${Colors.sosRed}20`,
-    borderColor: `${Colors.sosRed}40`,
-  },
-  statusSuccess: {
-    backgroundColor: `${Colors.success}20`,
-    borderColor: `${Colors.success}40`,
-  },
   statusText: {
     fontSize: 13,
     fontWeight: '600',
@@ -337,7 +344,6 @@ const styles = StyleSheet.create({
   fieldLabel: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 6,
     marginTop: Spacing.sm,
@@ -352,30 +358,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: BorderRadius.round,
-    backgroundColor: Colors.background,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
-  },
-  typeChipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
   },
   typeChipText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textMuted,
     textTransform: 'capitalize',
   },
   typeTextActive: {
     color: '#fff',
   },
   textArea: {
-    backgroundColor: Colors.inputBg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
     padding: Spacing.md,
-    color: Colors.text,
     fontSize: 13,
     minHeight: 80,
     textAlignVertical: 'top',
@@ -384,12 +380,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: Colors.background,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginVertical: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   gpsInfo: {
     flexDirection: 'row',
@@ -399,7 +393,6 @@ const styles = StyleSheet.create({
   gpsText: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.text,
   },
   gpsRefreshBtn: {
     paddingHorizontal: 8,
@@ -408,7 +401,6 @@ const styles = StyleSheet.create({
   gpsRefreshText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.primary,
   },
   photoActionsRow: {
     flexDirection: 'row',
@@ -419,17 +411,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: Colors.background,
     paddingVertical: 12,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
     gap: 6,
   },
   photoBtnText: {
     fontSize: 13,
     fontWeight: '700',
-    color: Colors.text,
   },
   imagePreviewContainer: {
     position: 'relative',
@@ -453,7 +442,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   submitBtn: {
-    backgroundColor: Colors.primary,
     height: 48,
     borderRadius: BorderRadius.md,
     flexDirection: 'row',
@@ -471,14 +459,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   emptyText: {
-    color: Colors.textMuted,
     fontSize: 13,
     fontStyle: 'italic',
   },
   reportItem: {
     paddingVertical: Spacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: Colors.cardBorder,
   },
   reportHeader: {
     flexDirection: 'row',
@@ -488,19 +474,15 @@ const styles = StyleSheet.create({
   reportType: {
     fontSize: 13,
     fontWeight: '800',
-    color: Colors.primary,
   },
   reportTime: {
     fontSize: 11,
-    color: Colors.textSubtle,
   },
   reportDesc: {
     fontSize: 13,
-    color: Colors.text,
   },
   reportMeta: {
     fontSize: 11,
-    color: Colors.textMuted,
     marginTop: 4,
   },
 });
