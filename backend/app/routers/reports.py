@@ -100,9 +100,18 @@ async def create_report(
     description: str = Form(""),
     lat: float = Form(...),
     lon: float = Form(...),
+    captured_at: str | None = Form(None),
     photo: UploadFile | None = File(None),
     user: dict = Depends(require_roles(["FIELD_OFFICER", "EMERGENCY_OPERATOR", "ADMIN", "SUPER_ADMIN"]))
 ):
+    """
+    captured_at: ISO-8601 timestamp of when the photo/report was captured on
+    the reporting device (set client-side at the moment of capture, distinct
+    from server-side created_at). The mobile app also burns this same GPS +
+    timestamp as a visible watermark onto the photo itself before upload, so
+    the caption is corroborated by the image even if it's later exported out
+    of this system.
+    """
     photo_path = None
     if photo is not None and photo.filename:
         ext = os.path.splitext(photo.filename)[1].lower() or ".jpg"
@@ -116,6 +125,6 @@ async def create_report(
                 photo_path = f"/uploads/{safe_fname}"
 
     report = await reports_service.submit_report(
-        reporter_name, phone, incident_type, description, lat, lon, photo_path
+        reporter_name, phone, incident_type, description, lat, lon, photo_path, captured_at
     )
     return report

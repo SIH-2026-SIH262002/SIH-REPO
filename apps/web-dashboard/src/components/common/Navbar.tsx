@@ -37,7 +37,8 @@ const getRoleDashboardPath = (role?: UserRole) => {
     case 'ADMIN':
       return '/admin';
     case 'DISTRICT_AUTHORITY':
-      return '/district-dashboard';
+    case 'EMERGENCY_OPERATOR':
+      return '/emergency';
     case 'LOGISTICS_OPERATOR':
       return '/logistics';
     case 'FIELD_OFFICER':

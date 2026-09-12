@@ -7,31 +7,17 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (identifier: string, password: str) => Promise<User>;
+  login: (identifier: string, password: string) => Promise<User>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
 
-type str = string;
-
-const DEFAULT_USER: User = {
-  userId: 'usr-officer-01',
-  email: 'officer@nerlogisense.gov.in',
-  fullName: 'Anshumaan Khare',
-  role: 'FIELD_OFFICER',
-  phone: '+91 98765 43210',
-  district: 'East Khasi Hills',
-  organization: 'NER Logistics & Disaster Mgmt Authority',
-};
-
-const DEFAULT_TOKEN = 'mock-bypass-jwt-token-ner-logisense';
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(DEFAULT_USER);
-  const [token, setToken] = useState<string | null>(DEFAULT_TOKEN);
-  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     loadStoredAuth();
@@ -42,19 +28,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const storedToken = await secureStorage.getToken();
       const storedUser = await secureStorage.getUser();
 
-      if (storedToken) {
-        setToken(storedToken);
-      } else {
-        setToken(DEFAULT_TOKEN);
+      if (!storedToken) {
+        setToken(null);
+        setUser(null);
+        return;
       }
 
+      setToken(storedToken);
       if (storedUser) {
         setUser(storedUser);
-      } else {
-        setUser(DEFAULT_USER);
       }
 
-      // Background verify token & get updated user profile if backend is available
+      // Verify the stored token is still valid & refresh the profile.
       try {
         const freshUser = await authApi.getMe();
         if (freshUser) {
@@ -62,14 +47,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           await secureStorage.setUser(freshUser);
         }
       } catch (e) {
-        // Silently preserve default user if backend is offline
+        // Stored token is expired/invalid -- require a fresh login.
+        await secureStorage.clearAll();
+        setToken(null);
+        setUser(null);
       }
     } catch (e) {
       console.warn('Error loading stored auth:', e);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const login = async (identifier: string, password: str): Promise<User> => {
+  const login = async (identifier: string, password: string): Promise<User> => {
     setIsLoading(true);
     try {
       const res = await authApi.login(identifier, password);
@@ -81,10 +71,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setToken(res.accessToken);
       setUser(res.user);
       return res.user;
-    } catch (e) {
-      setUser(DEFAULT_USER);
-      setToken(DEFAULT_TOKEN);
-      return DEFAULT_USER;
     } finally {
       setIsLoading(false);
     }
@@ -96,8 +82,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await authApi.logout().catch(() => {});
     } finally {
       await secureStorage.clearAll();
-      setToken(DEFAULT_TOKEN);
-      setUser(DEFAULT_USER);
+      setToken(null);
+      setUser(null);
       setIsLoading(false);
     }
   };
@@ -137,4 +123,3 @@ export const useAuth = () => {
   }
   return context;
 };
-

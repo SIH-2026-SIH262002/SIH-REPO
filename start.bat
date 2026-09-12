@@ -72,7 +72,9 @@ if not exist "%FRONTEND_DIR%\node_modules" (
 
 echo.
 echo [Start] Launching backend      -^> http://localhost:8000
-start "NER LogiSense - Backend" cmd /k "cd /d "%BACKEND_DIR%" && "%VENV_PY%" -m uvicorn app.main:app --reload --port 8000"
+REM --host 0.0.0.0 makes this reachable from phones on the same WiFi (not
+REM just this PC) -- required for testing the mobile app on a real device.
+start "NER LogiSense - Backend" cmd /k "cd /d "%BACKEND_DIR%" && "%VENV_PY%" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 
 echo [Start] Launching auth-service -^> http://localhost:3000
 REM Identity/session/user-directory + Admin account lifecycle (provision,

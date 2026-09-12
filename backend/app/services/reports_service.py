@@ -42,10 +42,12 @@ def _nearest_node(lat: float, lon: float) -> str:
 
 
 async def submit_report(reporter_name: str, phone: str, incident_type: str, description: str,
-                         lat: float, lon: float, photo_path: str | None) -> dict:
+                         lat: float, lon: float, photo_path: str | None,
+                         captured_at: str | None = None) -> dict:
     node_key = _nearest_node(lat, lon)
     risk_score = INCIDENT_RISK.get(incident_type, 60)
     node_state = STATE[node_key]
+    received_at = datetime.now(timezone.utc).isoformat()
 
     report = {
         "id": f"RPT-{int(time.time() * 1000)}",
@@ -58,7 +60,11 @@ async def submit_report(reporter_name: str, phone: str, incident_type: str, desc
         "nearest_node": node_key,
         "nearest_node_name": node_state["name"],
         "photo_path": photo_path,
-        "created_at": datetime.now(timezone.utc).isoformat(),
+        # Device-side capture time (when the field officer actually took the
+        # photo/filed the report), distinct from created_at (when the server
+        # received it) -- falls back to received time if the client omitted it.
+        "captured_at": captured_at or received_at,
+        "created_at": received_at,
     }
     REPORTS.insert(0, report)
     del REPORTS[500:]

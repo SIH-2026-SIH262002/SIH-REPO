@@ -13,7 +13,7 @@ function AppContent() {
     <>
       <StatusBar style={colors.statusBarStyle} backgroundColor={colors.background} />
       <Stack
-        initialRouteName="(tabs)"
+        initialRouteName="index"
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: colors.background },

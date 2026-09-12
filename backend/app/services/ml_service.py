@@ -85,7 +85,7 @@ def predict_risk(reading: Dict[str, Any]) -> Dict[str, Any]:
     X = pd.DataFrame([row])[feature_order]
 
     if "regressors" in bundle:
-        # Blended ensemble predictions
+        # Blended ensemble predictions (XGBoost + LightGBM, averaged)
         risk_score = float(np.mean([m.predict(X)[0] for m in bundle["regressors"].values()]))
         occurrence_probability = float(
             np.mean([m.predict_proba(X)[0][1] for m in bundle["classifiers"].values()])
