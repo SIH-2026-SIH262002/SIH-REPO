@@ -70,7 +70,9 @@ export async function logoutApi() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ sessionId })
             });
-        } catch (_) {}
+        } catch {
+            // best-effort logout call; ignore network/API errors
+        }
     }
     getAuthStorage().clear();
 }

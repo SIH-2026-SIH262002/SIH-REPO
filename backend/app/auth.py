@@ -33,7 +33,7 @@ def normalize_role(role_str: str) -> str:
         return "ADMIN"
     if r in ("DISTRICT_AUTHORITY", "EMERGENCY_OPERATOR"):
         return "EMERGENCY_OPERATOR"
-    if r in ("LOGISTICS_OPERATOR", "FIELD_OFFICER", "DRIVER"):
+    if r in ("LOGISTICS_OPERATOR", "FIELD_OFFICER", "DRIVER", "LOCAL_USER"):
         return r
     return "FIELD_OFFICER"
 

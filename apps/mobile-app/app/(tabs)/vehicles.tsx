@@ -14,6 +14,7 @@ import { vehiclesApi } from '../../src/api/vehicles';
 import { Vehicle } from '../../src/types';
 import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -25,6 +26,7 @@ export default function VehiclesScreen() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const fetchVehicles = async () => {
@@ -58,15 +60,15 @@ export default function VehiclesScreen() {
       case 'EMERGENCY':
         return colors.sosRed;
       default:
-        return colors.primary;
+        return colors.textMuted;
     }
   };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
-        title="Fleet Tracking"
-        subtitle="Live Vehicle GPS, Status & Telematics"
+        title={t('fleet_tracking', 'Fleet & Transport Tracking')}
+        subtitle="Real-time Vehicle Status & GPS Monitoring"
         rightActionIcon="refresh-outline"
         onRightAction={fetchVehicles}
       />
@@ -106,28 +108,38 @@ export default function VehiclesScreen() {
                     </View>
                     <View>
                       <Text style={[styles.vehicleId, { color: colors.text }]}>{v.id}</Text>
-                      <Text style={[styles.driverName, { color: colors.textMuted }]}>Driver: {v.driver_name}</Text>
+                      <Text style={[styles.driverName, { color: colors.textMuted }]}>{v.driver_name}</Text>
                     </View>
                   </View>
 
                   <View style={[styles.statusBadge, { backgroundColor: `${statusColor}15`, borderColor: `${statusColor}40` }]}>
                     <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
-                    <Text style={[styles.statusText, { color: statusColor }]}>{v.status}</Text>
+                    <Text style={[styles.statusText, { color: statusColor }]}>{v.status.replace('_', ' ')}</Text>
                   </View>
                 </View>
 
+                {/* Cargo & Destination Banner */}
+                {v.cargo_type ? (
+                  <View style={[styles.cargoBanner, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
+                    <Ionicons name="cube-outline" size={14} color={colors.primary} />
+                    <Text style={[styles.cargoText, { color: colors.textMuted }]} numberOfLines={1}>
+                      Cargo: <Text style={{ color: colors.text, fontWeight: '700' }}>{v.cargo_type}</Text>
+                    </Text>
+                  </View>
+                ) : null}
+
                 {/* Details Grid */}
                 <View style={[styles.infoGrid, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
-                  <View style={styles.infoCol}>
+                  <View style={[styles.infoCol, { flex: 1.5 }]}>
                     <Text style={[styles.infoLabel, { color: colors.textSubtle }]}>ROUTE</Text>
-                    <Text style={[styles.infoValue, { color: colors.text }]}>{v.current_route || 'Unassigned'}</Text>
+                    <Text style={[styles.infoValue, { color: colors.text }]} numberOfLines={2}>{v.current_route || 'Unassigned'}</Text>
                   </View>
                   <View style={styles.infoCol}>
                     <Text style={[styles.infoLabel, { color: colors.textSubtle }]}>SPEED</Text>
                     <Text style={[styles.infoValue, { color: colors.text }]}>{v.speed_kmh || 0} km/h</Text>
                   </View>
                   <View style={styles.infoCol}>
-                    <Text style={[styles.infoLabel, { color: colors.textSubtle }]}>PHONE</Text>
+                    <Text style={[styles.infoLabel, { color: colors.textSubtle }]}>CONTACT</Text>
                     <Text style={[styles.infoValue, { color: colors.text }]}>{v.phone || 'N/A'}</Text>
                   </View>
                 </View>
@@ -216,6 +228,19 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '700',
+  },
+  cargoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 6,
+    borderRadius: BorderRadius.sm,
+    borderWidth: 1,
+    marginBottom: Spacing.sm,
+    gap: 6,
+  },
+  cargoText: {
+    fontSize: 11,
   },
   infoGrid: {
     flexDirection: 'row',

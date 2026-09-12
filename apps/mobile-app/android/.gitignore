@@ -14,3 +14,7 @@ local.properties
 
 # Bundle artifacts
 *.jsbundle
+
+# Mappls (MapmyIndia) license files — per-app secrets, see app/README-MAPPLS.md
+app/*.a.olf
+app/*.a.conf

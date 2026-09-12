@@ -6,9 +6,9 @@ node_modules/
 .env.local
 .env.*.local
 
-# SQLite DB (generated)
-auth-engine/auth.db
-auth-engine/*.db
+# SQLite DB (legacy, superseded by Neon Postgres)
+auth.db
+*.db
 
 # Build outputs
 frontend/dist

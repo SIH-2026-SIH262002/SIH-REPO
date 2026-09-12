@@ -18,6 +18,8 @@ import { sosApi } from '../../src/api/sos';
 import { locationService } from '../../src/services/locationService';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
+import { useAccessibility } from '../../src/context/AccessibilityContext';
 import { SOSEvent } from '../../src/types';
 import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { getApiErrorMessage } from '../../src/api/client';
@@ -27,6 +29,8 @@ import { Accelerometer } from 'expo-sensors';
 export default function SOSScreen() {
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useLanguage();
+  const { speak } = useAccessibility();
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [issueType, setIssueType] = useState('vehicle_breakdown');
@@ -66,9 +70,14 @@ export default function SOSScreen() {
 
   const handleShakeTrigger = async () => {
     setShakeDetected(true);
-    Vibration.vibrate([0, 400, 200, 400, 200, 600]);
+    // Repeat the alarm buzz pattern until cancelled so the phone keeps
+    // vibrating like a real alarm while the shake banner is showing.
+    Vibration.vibrate([0, 400, 200, 400, 200, 600], true);
     await triggerEmergency('SHAKE_PANIC_ALARM', 'AUTOMATIC SOS: Mobile device shake motion detected!');
-    setTimeout(() => setShakeDetected(false), 5000);
+    setTimeout(() => {
+      Vibration.cancel();
+      setShakeDetected(false);
+    }, 5000);
   };
 
   const triggerEmergency = async (overrideType?: string, overrideMsg?: string) => {
@@ -104,6 +113,8 @@ export default function SOSScreen() {
         `• GPS Coordinates: ${pos.lat.toFixed(4)}° N, ${pos.lon.toFixed(4)}° E\n` +
         `• Dispatch Status: Live Broadcast over WebSockets & SMS Emergency Relay`
       );
+      Vibration.vibrate([0, 200, 100, 200, 100, 200]);
+      speak('Emergency SOS broadcasted. Nearest responder and field officer have been notified.');
       setConfirmModalVisible(false);
       setMessage('');
     } catch (e: any) {
@@ -116,7 +127,7 @@ export default function SOSScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
-        title="EMERGENCY SOS"
+        title={t('emergency_sos', 'EMERGENCY SOS')}
         subtitle="One-Tap & Motion Shake Emergency Dispatch System"
       />
 
@@ -138,7 +149,7 @@ export default function SOSScreen() {
             <Ionicons name="shield-checkmark" size={28} color={colors.success} />
             <View style={styles.alertTextWrapper}>
               <Text style={[styles.successTitle, { color: colors.success }]}>
-                SOS SENT TO NEAREST RESPONDER
+                {t('sos_received', 'SOS RECEIVED')}
               </Text>
               <Text style={[styles.successSub, { color: colors.text }]}>{successMsg}</Text>
             </View>
@@ -191,13 +202,20 @@ export default function SOSScreen() {
         <View style={styles.sosButtonContainer}>
           <TouchableOpacity
             style={[styles.sosCircle, { backgroundColor: colors.sosRed, borderColor: colors.sosGlow }]}
-            onPress={() => setConfirmModalVisible(true)}
+            onPress={() => {
+              Vibration.vibrate(60);
+              setConfirmModalVisible(true);
+            }}
             activeOpacity={0.85}
+            accessible
+            accessibilityRole="button"
+            accessibilityLabel="Send emergency SOS"
+            accessibilityHint="Opens a confirmation to broadcast your GPS location to the nearest emergency responder"
           >
             <View style={styles.sosInnerCircle}>
               <Ionicons name="alert-circle" size={64} color="#fff" />
               <Text style={styles.sosText}>S O S</Text>
-              <Text style={styles.sosSubtext}>TAP TO BROADCAST EMERGENCY</Text>
+              <Text style={styles.sosSubtext}>{t('trigger_sos', 'TAP TO BROADCAST EMERGENCY')}</Text>
             </View>
           </TouchableOpacity>
         </View>

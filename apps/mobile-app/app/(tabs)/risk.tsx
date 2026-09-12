@@ -16,6 +16,7 @@ import { riskApi } from '../../src/api/risk';
 import { RiskPredictionResult, RiskCategory } from '../../src/types';
 import { Spacing, BorderRadius, RiskColors } from '../../src/constants/theme';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -34,6 +35,7 @@ export default function RiskScreen() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const fetchFeatureImportance = async () => {
     try {
@@ -62,7 +64,7 @@ export default function RiskScreen() {
         slope_angle_deg: parseFloat(slopeAngle) || 0,
       });
       setPrediction(res);
-    } catch (e) {
+    } catch (e: any) {
       setErrorMsg(getApiErrorMessage(e));
     } finally {
       setCalculating(false);
@@ -72,8 +74,8 @@ export default function RiskScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
-        title="Landslide Risk AI"
-        subtitle="Machine Learning Predictive Analysis"
+        title={t('risk_analysis', 'AI Risk Assessment')}
+        subtitle={t('predictive_model', 'Real-time Geotechnical & Rainfall Risk Radar')}
         rightActionIcon="refresh-outline"
         onRightAction={handlePredict}
       />

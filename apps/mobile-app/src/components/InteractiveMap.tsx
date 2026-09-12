@@ -1,21 +1,24 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform, Linking } from 'react-native';
 import { RiskColors, Spacing, BorderRadius } from '../constants/theme';
 import { useTheme } from '../context/ThemeContext';
 import { SensorNode, Vehicle, IncidentReport, RiskCategory } from '../types';
 import { Ionicons } from '@expo/vector-icons';
 import { RiskBadge } from './RiskBadge';
 
-// Try importing react-native-maps safely
+// Try importing react-native-maps safely with PROVIDER_GOOGLE
 let MapView: any = null;
 let Marker: any = null;
+let PROVIDER_GOOGLE: any = undefined;
 try {
   const Maps = require('react-native-maps');
   MapView = Maps.default || Maps;
   Marker = Maps.Marker;
+  PROVIDER_GOOGLE = Maps.PROVIDER_GOOGLE;
 } catch (e) {
   // react-native-maps fallback mode
 }
+
 
 interface InteractiveMapProps {
   sensors?: SensorNode[];
@@ -100,8 +103,24 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
     </View>
   );
 
+  const openGoogleMapsNavigation = (lat: number, lon: number, label?: string) => {
+    const destination = `${lat},${lon}`;
+    const url = Platform.select({
+      ios: `maps:0,0?q=${encodeURIComponent(label || 'Reroute')}&ll=${destination}`,
+      android: `google.navigation:q=${destination}`,
+    }) || `https://www.google.com/maps/dir/?api=1&destination=${destination}`;
+
+    Linking.openURL(url).catch(() => {
+      Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${destination}`);
+    });
+  };
+
   const renderDetailCard = (item: { type: string; data: any }, onClose: () => void) => {
     const d = item.data;
+    const targetLat = d.lat || d.latitude || 25.5788;
+    const targetLon = d.lon || d.longitude || 91.8933;
+    const label = d.name || d.id || d.incident_type || 'Reroute Target';
+
     return (
       <View
         style={[
@@ -167,6 +186,16 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
             </Text>
           </View>
         )}
+
+        {/* Google Maps Turn-by-Turn Reroute Button */}
+        <TouchableOpacity
+          style={[styles.googleRerouteBtn, { backgroundColor: '#4285F4' }]}
+          onPress={() => openGoogleMapsNavigation(targetLat, targetLon, label)}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="navigate-circle-outline" size={18} color="#fff" />
+          <Text style={styles.googleRerouteBtnText}>REROUTE VIA GOOGLE MAPS</Text>
+        </TouchableOpacity>
       </View>
     );
   };
@@ -175,7 +204,11 @@ export const InteractiveMap: React.FC<InteractiveMapProps> = ({
   if (MapView && Marker && Platform.OS !== 'web') {
     return (
       <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <MapView style={styles.map} initialRegion={initialRegion}>
+        <MapView
+          style={styles.map}
+          provider={PROVIDER_GOOGLE}
+          initialRegion={initialRegion}
+        >
           {filteredSensors.map((sensor) => {
             const color = RiskColors[sensor.category as keyof typeof RiskColors] || colors.riskLow;
             return (
@@ -337,6 +370,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  mapplsPin: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
   radarHeader: {
     padding: Spacing.md,
     borderBottomWidth: 1,
@@ -453,5 +493,19 @@ const styles = StyleSheet.create({
   },
   drawerText: {
     fontSize: 13,
+  },
+  googleRerouteBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    borderRadius: BorderRadius.md,
+    marginTop: Spacing.sm,
+    gap: 6,
+  },
+  googleRerouteBtnText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '800',
   },
 });

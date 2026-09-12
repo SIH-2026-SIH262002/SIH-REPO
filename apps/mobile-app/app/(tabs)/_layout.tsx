@@ -1,13 +1,57 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
+import { Tabs, Redirect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useOffline } from '../../src/context/OfflineContext';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useAuth } from '../../src/context/AuthContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { View, Text, StyleSheet } from 'react-native';
+import { Role } from '../../src/types';
+
+// RBAC: which tabs each role sees. Screens not listed for a role are hidden
+// from the tab bar (href: null) but the backend still enforces permissions
+// independently for every write/verify action, per-route.
+const TAB_NAME = {
+  DASHBOARD: 'index',
+  MAP: 'map',
+  RISK: 'risk',
+  ALERTS: 'alerts',
+  VEHICLES: 'vehicles',
+  INCIDENTS: 'incidents',
+  SOS: 'sos',
+  PROFILE: 'profile',
+} as const;
+
+const ALL_TABS = Object.values(TAB_NAME);
+
+const ROLE_TABS: Record<Role, readonly string[]> = {
+  DRIVER: [
+    TAB_NAME.DASHBOARD, TAB_NAME.MAP, TAB_NAME.ALERTS,
+    TAB_NAME.VEHICLES, TAB_NAME.INCIDENTS, TAB_NAME.SOS, TAB_NAME.PROFILE,
+  ],
+  LOCAL_USER: [
+    TAB_NAME.DASHBOARD, TAB_NAME.MAP, TAB_NAME.ALERTS,
+    TAB_NAME.INCIDENTS, TAB_NAME.SOS, TAB_NAME.PROFILE,
+  ],
+  // Officer / operator / admin roles: full access, as before RBAC existed.
+  FIELD_OFFICER: ALL_TABS,
+  LOGISTICS_OPERATOR: ALL_TABS,
+  DISTRICT_AUTHORITY: ALL_TABS,
+  ADMIN: ALL_TABS,
+  SUPER_ADMIN: ALL_TABS,
+};
 
 export default function TabsLayout() {
   const { pendingCount } = useOffline();
   const { colors } = useTheme();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  const { t } = useLanguage();
+
+  if (isLoading) return null;
+  if (!isAuthenticated) return <Redirect href="/(auth)/login" />;
+
+  const visibleTabs = ROLE_TABS[user?.role ?? 'FIELD_OFFICER'] ?? ALL_TABS;
+  const hidden = (name: string) => !visibleTabs.includes(name);
 
   return (
     <Tabs
@@ -31,7 +75,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: t('dashboard_tab', 'Dashboard'),
+          href: hidden(TAB_NAME.DASHBOARD) ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="grid-outline" size={size - 2} color={color} />
           ),
@@ -40,7 +85,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="map"
         options={{
-          title: 'Live Map',
+          title: t('map_tab', 'Live Map'),
+          href: hidden(TAB_NAME.MAP) ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="map-outline" size={size - 2} color={color} />
           ),
@@ -49,7 +95,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="risk"
         options={{
-          title: 'Risk AI',
+          title: t('risk_tab', 'Risk AI'),
+          href: hidden(TAB_NAME.RISK) ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="analytics-outline" size={size - 2} color={color} />
           ),
@@ -58,7 +105,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="alerts"
         options={{
-          title: 'Alerts',
+          title: t('alerts_tab', 'Alerts'),
+          href: hidden(TAB_NAME.ALERTS) ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="notifications-outline" size={size - 2} color={color} />
           ),
@@ -67,7 +115,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="vehicles"
         options={{
-          title: 'Vehicles',
+          title: t('vehicles_tab', 'Vehicles'),
+          href: hidden(TAB_NAME.VEHICLES) ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="bus-outline" size={size - 2} color={color} />
           ),
@@ -76,7 +125,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="incidents"
         options={{
-          title: 'Report',
+          title: t('report_tab', 'Report'),
+          href: hidden(TAB_NAME.INCIDENTS) ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <View>
               <Ionicons name="camera-outline" size={size - 2} color={color} />
@@ -92,7 +142,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="sos"
         options={{
-          title: 'SOS',
+          title: t('sos_tab', 'SOS'),
+          href: hidden(TAB_NAME.SOS) ? null : undefined,
           tabBarIcon: ({ size }) => (
             <Ionicons name="alert-circle" size={size + 2} color={colors.sosRed} />
           ),
@@ -101,7 +152,8 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('profile_tab', 'Profile'),
+          href: hidden(TAB_NAME.PROFILE) ? null : undefined,
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="person-circle-outline" size={size - 2} color={color} />
           ),

@@ -18,6 +18,7 @@ import { locationService } from '../../src/services/locationService';
 import { useAuth } from '../../src/context/AuthContext';
 import { useOffline } from '../../src/context/OfflineContext';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { IncidentReport } from '../../src/types';
 import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
@@ -27,6 +28,7 @@ export default function IncidentsScreen() {
   const { user } = useAuth();
   const { enqueueReport } = useOffline();
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const [incidentType, setIncidentType] = useState<'landslide' | 'flood' | 'road_blocked' | 'vibration' | 'other'>('landslide');
   const [description, setDescription] = useState('');

@@ -1,35 +1,35 @@
-const { sqliteTable, text, integer } = require('drizzle-orm/sqlite-core');
+const { pgTable, text, boolean, timestamp } = require('drizzle-orm/pg-core');
 
 // Define the users table
-const users = sqliteTable('users', {
+const users = pgTable('users', {
     id: text('id').primaryKey(),
     identifier: text('identifier').notNull().unique(), // Can be email, username, phone, etc.
     password_hash: text('password_hash').notNull(),
-    is_active: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-    metadata: text('metadata', { mode: 'json' }).default('{}'),
-    created_at: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
-    updated_at: integer('updated_at', { mode: 'timestamp' }).notNull().default(new Date()),
+    is_active: boolean('is_active').notNull().default(true),
+    metadata: text('metadata').default('{}'),
+    created_at: timestamp('created_at').notNull().defaultNow(),
+    updated_at: timestamp('updated_at').notNull().defaultNow(),
 });
 
 // Define the sessions table
-const sessions = sqliteTable('sessions', {
+const sessions = pgTable('sessions', {
     sessionId: text('session_id').primaryKey(),
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     refreshTokenHash: text('refresh_token_hash').notNull(),
     tenantId: text('tenant_id'),
-    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-    revoked: integer('revoked', { mode: 'boolean' }).notNull().default(false),
-    created_at: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
+    expiresAt: timestamp('expires_at').notNull(),
+    revoked: boolean('revoked').notNull().default(false),
+    created_at: timestamp('created_at').notNull().defaultNow(),
 });
 
 // Password reset tokens (single-use, short-lived)
-const passwordResetTokens = sqliteTable('password_reset_tokens', {
+const passwordResetTokens = pgTable('password_reset_tokens', {
     id: text('id').primaryKey(),
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     tokenHash: text('token_hash').notNull().unique(),
-    expiresAt: integer('expires_at', { mode: 'timestamp' }).notNull(),
-    usedAt: integer('used_at', { mode: 'timestamp' }),
-    created_at: integer('created_at', { mode: 'timestamp' }).notNull().default(new Date()),
+    expiresAt: timestamp('expires_at').notNull(),
+    usedAt: timestamp('used_at'),
+    created_at: timestamp('created_at').notNull().defaultNow(),
 });
 
 module.exports = {

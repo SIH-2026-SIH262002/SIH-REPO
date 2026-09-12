@@ -15,6 +15,7 @@ import { alertsApi } from '../../src/api/alerts';
 import { Alert } from '../../src/types';
 import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -26,6 +27,7 @@ export default function AlertsScreen() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const { colors } = useTheme();
+  const { t } = useLanguage();
 
   const fetchAlerts = async () => {
     try {
@@ -52,8 +54,8 @@ export default function AlertsScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
-        title="Active Alerts"
-        subtitle="Real-time Hazards & Early Warnings"
+        title={t('alerts_center', 'Emergency Alerts Center')}
+        subtitle={t('live_warning_feed', 'Live Hazard & Divergence Warnings')}
         rightActionIcon="refresh-outline"
         onRightAction={fetchAlerts}
       />
@@ -125,7 +127,7 @@ export default function AlertsScreen() {
               <View style={styles.cardHeader}>
                 <View style={styles.typeBadge}>
                   <Ionicons name="warning-outline" size={18} color={colors.warning} />
-                  <Text style={[styles.typeText, { color: colors.text }]}>{item.type}</Text>
+                  <Text style={[styles.typeText, { color: colors.text }]}>{item.type ? item.type.replace(/_/g, ' ') : 'HAZARD ALERT'}</Text>
                 </View>
                 <RiskBadge category={item.severity} size="sm" />
               </View>

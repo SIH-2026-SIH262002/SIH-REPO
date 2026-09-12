@@ -17,10 +17,10 @@ def graph_snapshot():
 
 
 @router.get("/plan")
-def plan(origin: str, destination: str, k: int = 3):
+def plan(origin: str, destination: str, k: int = 3, avoid_steep_roads: bool = False):
     origin = origin.upper()
     destination = destination.upper()
-    result = routing_service.plan_routes(origin, destination, k=k)
+    result = routing_service.plan_routes(origin, destination, k=k, avoid_steep_roads=avoid_steep_roads)
     if "error" in result:
         raise HTTPException(400, result["error"])
     return result

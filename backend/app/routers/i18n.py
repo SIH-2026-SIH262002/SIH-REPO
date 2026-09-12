@@ -1,13 +1,20 @@
 from fastapi import APIRouter, HTTPException
 
-from app.translations import STRINGS, LANGUAGES
+from app.translations import STRINGS, LANGUAGES, LANGUAGE_NAMES, NEEDS_NATIVE_REVIEW
 
 router = APIRouter(prefix="/api/i18n", tags=["i18n"])
 
 
 @router.get("/languages")
 def languages():
-    return LANGUAGES
+    return [
+        {
+            "code": code,
+            "name": LANGUAGE_NAMES.get(code, code),
+            "needs_native_review": code in NEEDS_NATIVE_REVIEW,
+        }
+        for code in LANGUAGES
+    ]
 
 
 @router.get("/{lang}")

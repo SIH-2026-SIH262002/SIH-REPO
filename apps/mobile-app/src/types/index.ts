@@ -1,4 +1,29 @@
-export type Role = 'FIELD_OFFICER' | 'LOGISTICS_OPERATOR' | 'DISTRICT_AUTHORITY' | 'ADMIN' | 'SUPER_ADMIN' | 'DRIVER';
+export type Role =
+  | 'FIELD_OFFICER'
+  | 'LOGISTICS_OPERATOR'
+  | 'DISTRICT_AUTHORITY'
+  | 'ADMIN'
+  | 'SUPER_ADMIN'
+  | 'DRIVER'
+  | 'LOCAL_USER';
+
+export type ColorBlindMode = 'NONE' | 'DEUTAN' | 'PROTAN' | 'TRITAN' | 'MONOCHROME';
+
+export interface AccessibilityPreferences {
+  largeText: boolean;
+  highContrast: boolean;
+  largeTouchTargets: boolean;
+  voiceGuidance: boolean;
+  reduceAnimation: boolean;
+  wheelchairAccessible: boolean;
+  avoidStairs: boolean;
+  avoidSteepRoads: boolean;
+  screenReaderMode: boolean;
+  colorBlindMode: ColorBlindMode;
+  oneTouchMode: boolean;
+  flashAlerts: boolean;
+  hapticFeedback: boolean;
+}
 
 export interface User {
   userId: string;
@@ -8,6 +33,7 @@ export interface User {
   role: Role;
   district?: string;
   organization?: string;
+  accessibility?: AccessibilityPreferences;
 }
 
 export interface AuthTokens {
@@ -156,6 +182,56 @@ export interface SOSEvent {
   message: string;
   status: 'OPEN' | 'RESOLVED';
   timestamp: string;
+}
+
+export interface RouteNode {
+  key: string;
+  name: string;
+  district: string;
+  state: string;
+  lat: number;
+  lon: number;
+}
+
+export type RouteStatus = 'SAFE' | 'CAUTION' | 'AVOID';
+
+export interface RouteSegment {
+  from: string;
+  from_name: string;
+  to: string;
+  to_name: string;
+  distance_km: number;
+  time_hr: number;
+  highway_ref: string;
+  risk_score: number;
+  category: RiskCategory;
+  storm_event: boolean;
+  manually_flagged: boolean;
+  flagged: boolean;
+  blocked: boolean;
+  slope_deg: number;
+  steep: boolean;
+}
+
+export interface RouteOption {
+  route_id: string;
+  label: string;
+  path: string[];
+  path_names: string[];
+  segments: RouteSegment[];
+  total_distance_km: number;
+  estimated_time_hr: number;
+  max_segment_risk: number;
+  status: RouteStatus;
+  any_segment_blocked: boolean;
+}
+
+export interface RoutePlanResult {
+  origin: string;
+  origin_name: string;
+  destination: string;
+  destination_name: string;
+  routes: RouteOption[];
 }
 
 export interface SOSPayload {

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import { Header } from '../../src/components/Header';
 import { InteractiveMap } from '../../src/components/InteractiveMap';
 import { sensorsApi } from '../../src/api/sensors';
@@ -20,6 +21,7 @@ export default function MapScreen() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const { colors } = useTheme();
+  const router = useRouter();
 
   const loadMapData = async () => {
     try {
@@ -76,6 +78,19 @@ export default function MapScreen() {
           incidents={incidents}
         />
       )}
+
+      <TouchableOpacity
+        style={[styles.planRouteFab, { backgroundColor: colors.primary }]}
+        onPress={() => router.push('/route-planner')}
+        activeOpacity={0.85}
+        accessible
+        accessibilityRole="button"
+        accessibilityLabel="Plan a route"
+        accessibilityHint="Search for a destination and see safe route options"
+      >
+        <Ionicons name="navigate" size={18} color="#fff" />
+        <Text style={styles.planRouteFabText}>Plan Route</Text>
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -103,5 +118,26 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 12,
     flex: 1,
+  },
+  planRouteFab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 18,
+    height: 48,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  planRouteFabText: {
+    color: '#fff',
+    fontWeight: '800',
+    fontSize: 13,
   },
 });

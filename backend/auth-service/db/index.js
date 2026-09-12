@@ -1,15 +1,13 @@
-const { drizzle } = require('drizzle-orm/better-sqlite3');
-const Database = require('better-sqlite3');
+const { neon } = require('@neondatabase/serverless');
+const { drizzle } = require('drizzle-orm/neon-http');
 const schema = require('./schema');
-const path = require('path');
 
-// Connect to local SQLite file
-const sqlite = new Database(path.join(__dirname, '../auth.db'));
+// Pooled connection: safe for per-request app traffic (serverless-friendly).
+const sql = neon(process.env.DATABASE_URL);
 
 // Attach Drizzle ORM
-const db = drizzle(sqlite, { schema });
+const db = drizzle(sql, { schema });
 
 module.exports = {
-    db,
-    sqlite
+    db
 };

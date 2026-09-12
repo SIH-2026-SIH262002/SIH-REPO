@@ -23,7 +23,7 @@ class SqliteStorageAdapter {
                 metadata: typeof newUser[0].metadata === 'string' ? JSON.parse(newUser[0].metadata) : newUser[0].metadata
             };
         } catch (error) {
-            if (error.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+            if (error.code === '23505') { // Postgres unique_violation
                 throw new Error('User already exists');
             }
             throw error;
@@ -35,8 +35,8 @@ class SqliteStorageAdapter {
         const user = await db.select().from(users).where(
             or(
                 eq(users.identifier, identifier),
-                sql`json_extract(${users.metadata}, '$.email') = ${identifier}`,
-                sql`json_extract(${users.metadata}, '$.phone') = ${identifier}`
+                sql`(${users.metadata})::jsonb ->> 'email' = ${identifier}`,
+                sql`(${users.metadata})::jsonb ->> 'phone' = ${identifier}`
             )
         ).limit(1);
 

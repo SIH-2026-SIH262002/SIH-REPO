@@ -13,20 +13,24 @@ import {
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { DEMO_ACCOUNTS, DemoAccount } from '../../src/constants/demoUsers';
 
 export default function LoginScreen() {
   const [identifier, setIdentifier] = useState('officer@nerlogisense.gov.in');
   const [password, setPassword] = useState('password123');
   const [loading, setLoading] = useState(false);
+  const [demoLoadingId, setDemoLoadingId] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
-  const { login } = useAuth();
+  const { login, loginDemo } = useAuth();
   const { colors, isDark, toggleTheme } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -52,16 +56,17 @@ export default function LoginScreen() {
     }
   };
 
-  const fillDemo = (role: 'officer' | 'driver' | 'admin') => {
-    if (role === 'officer') {
-      setIdentifier('officer@nerlogisense.gov.in');
-      setPassword('password123');
-    } else if (role === 'driver') {
-      setIdentifier('driver@nerlogisense.gov.in');
-      setPassword('password123');
-    } else {
-      setIdentifier('admin@nerlogisense.gov.in');
-      setPassword('password123');
+  const handleDemoLogin = async (account: DemoAccount) => {
+    setErrorMsg('');
+    setDemoLoadingId(account.id);
+    try {
+      await loginDemo(account.user);
+      router.replace('/(tabs)');
+    } catch (err: any) {
+      console.warn('Demo login execution error:', err);
+      setErrorMsg('Demo quick login failed. Please try again.');
+    } finally {
+      setDemoLoadingId(null);
     }
   };
 
@@ -112,7 +117,7 @@ export default function LoginScreen() {
               { backgroundColor: colors.card, borderColor: colors.cardBorder },
             ]}
           >
-            <Text style={[styles.formHeader, { color: colors.text }]}>Sign In to Account</Text>
+            <Text style={[styles.formHeader, { color: colors.text }]}>{t('enter_credentials', 'Officer Login')}</Text>
 
             {errorMsg ? (
               <View
@@ -129,7 +134,7 @@ export default function LoginScreen() {
             {/* Identifier Input */}
             <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.textMuted }]}>
-                Email / Phone / Username
+                {t('phone_or_email', 'Mobile Number or Email')}
               </Text>
               <View
                 style={[
@@ -152,7 +157,7 @@ export default function LoginScreen() {
 
             {/* Password Input */}
             <View style={styles.inputGroup}>
-              <Text style={[styles.label, { color: colors.textMuted }]}>Password</Text>
+              <Text style={[styles.label, { color: colors.textMuted }]}>{t('password', 'Password')}</Text>
               <View
                 style={[
                   styles.inputWrapper,
@@ -193,45 +198,42 @@ export default function LoginScreen() {
                 <ActivityIndicator color="#fff" size="small" />
               ) : (
                 <>
-                  <Text style={styles.submitText}>Authenticate</Text>
+                  <Text style={styles.submitText}>{t('login', 'Sign In')}</Text>
                   <Ionicons name="arrow-forward" size={18} color="#fff" />
                 </>
               )}
             </TouchableOpacity>
 
-            {/* Quick Demo Credentials */}
+            {/* Demo Quick Logins */}
             <View style={[styles.demoSection, { borderTopColor: colors.cardBorder }]}>
               <Text style={[styles.demoTitle, { color: colors.textSubtle }]}>
-                DEMO QUICK LOGINS:
+                DEMO QUICK LOGINS
+              </Text>
+              <Text style={[styles.demoSubtitle, { color: colors.textSubtle }]}>
+                Development / SIH demonstration only — signs in instantly with no password.
               </Text>
               <View style={styles.demoButtonsRow}>
-                <TouchableOpacity
-                  style={[
-                    styles.demoChip,
-                    { backgroundColor: colors.background, borderColor: colors.cardBorder },
-                  ]}
-                  onPress={() => fillDemo('officer')}
-                >
-                  <Text style={[styles.demoChipText, { color: colors.primary }]}>Field Officer</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.demoChip,
-                    { backgroundColor: colors.background, borderColor: colors.cardBorder },
-                  ]}
-                  onPress={() => fillDemo('driver')}
-                >
-                  <Text style={[styles.demoChipText, { color: colors.primary }]}>Driver</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.demoChip,
-                    { backgroundColor: colors.background, borderColor: colors.cardBorder },
-                  ]}
-                  onPress={() => fillDemo('admin')}
-                >
-                  <Text style={[styles.demoChipText, { color: colors.primary }]}>Admin</Text>
-                </TouchableOpacity>
+                {DEMO_ACCOUNTS.map((account) => (
+                  <TouchableOpacity
+                    key={account.id}
+                    style={[
+                      styles.demoChip,
+                      { backgroundColor: colors.background, borderColor: colors.cardBorder },
+                    ]}
+                    onPress={() => handleDemoLogin(account)}
+                    disabled={demoLoadingId !== null}
+                    accessible
+                    accessibilityRole="button"
+                    accessibilityLabel={`Demo login as ${account.label}`}
+                    accessibilityHint="Signs in instantly as this demo role, no password required"
+                  >
+                    {demoLoadingId === account.id ? (
+                      <ActivityIndicator color={colors.primary} size="small" />
+                    ) : (
+                      <Text style={[styles.demoChipText, { color: colors.primary }]}>{account.label}</Text>
+                    )}
+                  </TouchableOpacity>
+                ))}
               </View>
             </View>
           </View>
@@ -366,7 +368,11 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '800',
     letterSpacing: 1,
-    marginBottom: 8,
+    marginBottom: 4,
+  },
+  demoSubtitle: {
+    fontSize: 10,
+    marginBottom: 10,
   },
   demoButtonsRow: {
     flexDirection: 'row',

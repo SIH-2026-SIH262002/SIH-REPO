@@ -19,7 +19,7 @@ export const Header: React.FC<HeaderProps> = ({
   rightActionIcon,
   onRightAction,
   badgeText,
-  showThemeToggle = true,
+  showThemeToggle = false,
 }) => {
   const { colors, isDark, toggleTheme } = useTheme();
 

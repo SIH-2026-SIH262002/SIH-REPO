@@ -77,7 +77,7 @@ module.exports = function createRouter(options = {}) {
         const upper = String(inputRole).toUpperCase();
         if (upper === 'SUPER_ADMIN') return 'ADMIN';
         if (upper === 'DISTRICT_AUTHORITY') return 'EMERGENCY_OPERATOR';
-        const allowed = ['ADMIN', 'EMERGENCY_OPERATOR', 'LOGISTICS_OPERATOR', 'FIELD_OFFICER', 'DRIVER'];
+        const allowed = ['ADMIN', 'EMERGENCY_OPERATOR', 'LOGISTICS_OPERATOR', 'FIELD_OFFICER', 'DRIVER', 'LOCAL_USER'];
         if (allowed.includes(upper)) return upper;
         return 'FIELD_OFFICER';
     };

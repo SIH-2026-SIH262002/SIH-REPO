@@ -18,6 +18,8 @@ from app.services.simulation_service import STATE, HIGH_RISK_THRESHOLD, SEVERE_R
 
 RISK_TIME_PENALTY = 2.5   # how much a risky segment inflates effective travel cost
 SEVERE_COST_MULTIPLIER = 40  # makes severe-risk edges Dijkstra-avoid unless truly no alternative
+STEEP_SLOPE_DEG_THRESHOLD = 25  # governing-node slope above which a segment counts as "steep"
+STEEP_COST_MULTIPLIER = 6  # penalty applied to steep segments when avoid_steep_roads is set
 
 
 def _edge_live_state(sensor_node_id: str) -> dict:
@@ -27,7 +29,7 @@ def _edge_live_state(sensor_node_id: str) -> dict:
     return {"risk_score": 20.0, "category": "LOW", "storm_event": False, "manual_flag": None}
 
 
-def build_graph() -> nx.Graph:
+def build_graph(avoid_steep_roads: bool = False) -> nx.Graph:
     g = nx.Graph()
     for key, node in NODES.items():
         g.add_node(key, **node)
@@ -38,10 +40,14 @@ def build_graph() -> nx.Graph:
         manual = live.get("manual_flag")
         effective_risk = max(risk_score, manual["risk_score"]) if manual else risk_score
         category = live["category"] if effective_risk == risk_score else manual["category"]
+        slope_deg = live.get("slope_angle_deg", 0.0)
+        steep = slope_deg >= STEEP_SLOPE_DEG_THRESHOLD
 
         cost = base_time_hr * (1 + (effective_risk / 100) * RISK_TIME_PENALTY)
         if effective_risk >= SEVERE_RISK_THRESHOLD:
             cost *= SEVERE_COST_MULTIPLIER
+        if avoid_steep_roads and steep:
+            cost *= STEEP_COST_MULTIPLIER
 
         g.add_edge(
             a, b,
@@ -55,6 +61,8 @@ def build_graph() -> nx.Graph:
             manually_flagged=manual is not None,
             flagged=effective_risk >= HIGH_RISK_THRESHOLD,
             blocked=effective_risk >= SEVERE_RISK_THRESHOLD,
+            slope_deg=round(slope_deg, 1),
+            steep=steep,
             cost=cost,
         )
     return g
@@ -80,6 +88,8 @@ def _summarize_path(g: nx.Graph, path: list[str]) -> dict:
             "manually_flagged": e["manually_flagged"],
             "flagged": e["flagged"],
             "blocked": e["blocked"],
+            "slope_deg": e["slope_deg"],
+            "steep": e["steep"],
         })
         total_distance += e["distance_km"]
         total_time += e["base_time_hr"] * (1 + (e["risk_score"] / 100) * RISK_TIME_PENALTY * 0.5)
@@ -105,8 +115,14 @@ def _summarize_path(g: nx.Graph, path: list[str]) -> dict:
     }
 
 
-def plan_routes(origin: str, destination: str, k: int = 3, criticality_multiplier: float = 1.0) -> dict:
-    g = build_graph()
+def plan_routes(
+    origin: str,
+    destination: str,
+    k: int = 3,
+    criticality_multiplier: float = 1.0,
+    avoid_steep_roads: bool = False,
+) -> dict:
+    g = build_graph(avoid_steep_roads=avoid_steep_roads)
     if origin not in g or destination not in g:
         return {"error": f"Unknown node(s). Valid nodes: {sorted(NODES.keys())}"}
     if not nx.has_path(g, origin, destination):

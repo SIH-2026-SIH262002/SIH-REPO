@@ -1,10 +1,12 @@
+import "dotenv/config";
 import { defineConfig } from "drizzle-kit";
 
 export default defineConfig({
-    dialect: "sqlite",
+    dialect: "postgresql",
     schema: "./db/schema.js",
     out: "./drizzle",
     dbCredentials: {
-        url: "file:./auth.db"
+        // Direct (non-pooled) connection required for migrations.
+        url: process.env.DATABASE_URL_UNPOOLED,
     }
 });

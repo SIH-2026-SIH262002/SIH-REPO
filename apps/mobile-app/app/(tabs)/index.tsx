@@ -21,6 +21,7 @@ import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
+import { useLanguage } from '../../src/context/LanguageContext';
 import { getApiErrorMessage } from '../../src/api/client';
 
 export default function DashboardScreen() {
@@ -31,6 +32,7 @@ export default function DashboardScreen() {
 
   const { user } = useAuth();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const router = useRouter();
 
   const fetchDashboardData = async () => {
@@ -63,9 +65,9 @@ export default function DashboardScreen() {
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
-        title="Dashboard"
-        subtitle={`Welcome back, ${user?.fullName || 'Officer'}`}
-        badgeText="LIVE RADAR"
+        title={`${user?.role ? user.role.replace('_', ' ') : 'DEMO'} DASHBOARD`}
+        subtitle={`${t('welcome_back', 'Welcome back')}, ${user?.fullName || 'User'}`}
+        badgeText={user?.role || 'LIVE RADAR'}
       />
       <OfflineQueueBanner />
 
@@ -86,7 +88,7 @@ export default function DashboardScreen() {
           {/* Regional Risk Hero Banner */}
           <Card style={styles.heroCard}>
             <View style={styles.heroHeader}>
-              <Text style={[styles.heroLabel, { color: colors.textSubtle }]}>NER REGIONAL HIGHEST LANDSLIDE RISK</Text>
+              <Text style={[styles.heroLabel, { color: colors.textSubtle }]}>{t('ner_highest_risk', 'NER REGIONAL HIGHEST LANDSLIDE RISK')}</Text>
               <RiskBadge category={overallCategory} size="md" />
             </View>
 
@@ -106,7 +108,7 @@ export default function DashboardScreen() {
                 activeOpacity={0.8}
               >
                 <Ionicons name="map-outline" size={16} color="#fff" />
-                <Text style={styles.actionBtnText}>Open Live Map</Text>
+                <Text style={styles.actionBtnText}>{t('open_live_map', 'Open Live Map')}</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
@@ -115,7 +117,7 @@ export default function DashboardScreen() {
                 activeOpacity={0.8}
               >
                 <Ionicons name="alert-circle-outline" size={16} color="#fff" />
-                <Text style={styles.actionBtnText}>SOS Emergency</Text>
+                <Text style={styles.actionBtnText}>{t('sos_emergency', 'SOS Emergency')}</Text>
               </TouchableOpacity>
             </View>
           </Card>
@@ -123,7 +125,7 @@ export default function DashboardScreen() {
           {/* Summary Metrics Grid */}
           <View style={styles.grid}>
             <StatCard
-              title="Active Nodes"
+              title={t('active_nodes', 'Active Nodes')}
               value={data?.total_nodes ?? 12}
               subtitle="IoT Sensors Online"
               icon="radio-outline"
@@ -132,7 +134,7 @@ export default function DashboardScreen() {
             />
 
             <StatCard
-              title="Critical Risks"
+              title={t('critical_risks', 'Critical Risks')}
               value={(data?.nodes_by_category?.HIGH ?? 0) + (data?.nodes_by_category?.SEVERE ?? 0)}
               subtitle="Requires Attention"
               icon="warning-outline"
@@ -141,7 +143,7 @@ export default function DashboardScreen() {
             />
 
             <StatCard
-              title="Active Vehicles"
+              title={t('active_vehicles', 'Active Vehicles')}
               value={data?.vehicles_total ?? 8}
               subtitle="On Field Routes"
               icon="bus-outline"

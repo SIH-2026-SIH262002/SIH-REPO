@@ -42,7 +42,9 @@ def list_reports(user: dict = Depends(get_current_user)):
 @router.post("/upload")
 async def upload_file(
     file: UploadFile = File(...),
-    user: dict = Depends(require_roles(["FIELD_OFFICER", "DRIVER", "LOGISTICS_OPERATOR", "EMERGENCY_OPERATOR", "ADMIN", "SUPER_ADMIN"]))
+    user: dict = Depends(require_roles(
+        ["FIELD_OFFICER", "DRIVER", "LOCAL_USER", "LOGISTICS_OPERATOR", "EMERGENCY_OPERATOR", "ADMIN", "SUPER_ADMIN"]
+    ))
 ):
     """
     Binary multipart file upload for field evidence images.
@@ -101,7 +103,9 @@ async def create_report(
     lat: float = Form(...),
     lon: float = Form(...),
     photo: UploadFile | None = File(None),
-    user: dict = Depends(require_roles(["FIELD_OFFICER", "EMERGENCY_OPERATOR", "ADMIN", "SUPER_ADMIN"]))
+    user: dict = Depends(require_roles(
+        ["FIELD_OFFICER", "EMERGENCY_OPERATOR", "ADMIN", "SUPER_ADMIN", "DRIVER", "LOCAL_USER"]
+    ))
 ):
     photo_path = None
     if photo is not None and photo.filename:

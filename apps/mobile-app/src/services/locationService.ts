@@ -41,7 +41,7 @@ export const locationService = {
         accuracy: location.coords.accuracy,
       };
     } catch (e) {
-      console.warn('Failed to get location, using default NER location:', e);
+      console.log('Location unavailable, falling back to default NER location (Shillong)');
       return DEFAULT_NER_LOCATION;
     }
   }

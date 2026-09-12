@@ -11,9 +11,14 @@ export const routesApi = {
     return response.data;
   },
 
-  planRoute: async (origin: string, destination: string, k: number = 3) => {
+  planRoute: async (
+    origin: string,
+    destination: string,
+    k: number = 3,
+    options?: { avoidSteepRoads?: boolean }
+  ) => {
     const response = await apiClient.get('/api/routes/plan', {
-      params: { origin, destination, k }
+      params: { origin, destination, k, avoid_steep_roads: options?.avoidSteepRoads || undefined }
     });
     return response.data;
   }
