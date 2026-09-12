@@ -81,10 +81,36 @@ export const apiService = {
     return response.data;
   },
 
-  // AI Route Planning
-  planRoute: async (origin: string, destination: string, criticalityMultiplier = 1.0) => {
+  // AI Route Planning & GraphHopper Multi-Routing
+  planRoute: async (origin: string, destination: string, avoidNode?: string, criticalityMultiplier = 1.0) => {
     const response = await apiClient.get('/routes/plan', {
-      params: { origin, destination, criticality_multiplier: criticalityMultiplier },
+      params: {
+        origin,
+        destination,
+        avoid_node: avoidNode || undefined,
+        criticality_multiplier: criticalityMultiplier,
+      },
+    });
+    return response.data;
+  },
+
+  getRoutePlan: async (origin: string, destination: string, avoidNode?: string) => {
+    const response = await apiClient.get('/routes/plan', {
+      params: {
+        origin,
+        destination,
+        avoid_node: avoidNode || undefined,
+      },
+    });
+    return response.data;
+  },
+
+  rerouteAvoidance: async (origin: string, destination: string, avoidNode: string) => {
+    const response = await apiClient.post('/routes/reroute', {
+      origin,
+      destination,
+      avoid_node: avoidNode,
+      k: 3,
     });
     return response.data;
   },

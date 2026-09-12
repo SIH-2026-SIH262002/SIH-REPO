@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { MapContainer, TileLayer, Marker, Popup, Circle, Tooltip, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, Circle, Tooltip, Polyline, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import { useTheme } from '../../context/ThemeContext';
 
@@ -29,12 +29,32 @@ export interface MapVehicle {
   cargo: string;
 }
 
+export interface MapRoutePath {
+  route_id: string;
+  label: string;
+  total_distance_km: number;
+  estimated_time_hr: number;
+  status: 'SAFE' | 'CAUTION' | 'AVOID' | string;
+  coordinates: [number, number][]; // [lat, lon]
+  is_graphhopper?: boolean;
+}
+
 interface NERMapProps {
   sensors?: MapSensorNode[];
   vehicles?: MapVehicle[];
   selectedVehicle?: MapVehicle | null;
   onSelectVehicle?: (v: MapVehicle) => void;
   onSelectNode?: (nodeKey: string) => void;
+  // GraphHopper & Multi-Routing additions
+  routes?: MapRoutePath[];
+  selectedRouteId?: string | null;
+  onSelectRoute?: (routeId: string) => void;
+  originCoords?: [number, number] | null;
+  destinationCoords?: [number, number] | null;
+  originName?: string | null;
+  destinationName?: string | null;
+  avoidCoords?: [number, number] | null;
+  avoidName?: string | null;
 }
 
 // Center of North Eastern Region (Assam / Meghalaya / Central NER)
@@ -51,6 +71,54 @@ const MapFlyToController: React.FC<{ selectedVehicle?: MapVehicle | null }> = ({
     }
   }, [selectedVehicle, map]);
   return null;
+};
+
+const MapRouteBoundsController: React.FC<{ routes?: MapRoutePath[] }> = ({ routes }) => {
+  const map = useMap();
+  useEffect(() => {
+    if (routes && routes.length > 0 && routes[0].coordinates.length > 1) {
+      try {
+        const bounds = L.latLngBounds(routes[0].coordinates);
+        map.fitBounds(bounds, { padding: [45, 45], maxZoom: 11, animate: true });
+      } catch {
+        // Safe fallback
+      }
+    }
+  }, [routes, map]);
+  return null;
+};
+
+const createLandmarkIcon = (label: string, color: string) => {
+  return L.divIcon({
+    className: 'custom-landmark-marker',
+    html: `
+      <div style="background-color: ${color}; border: 2.5px solid #ffffff; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; color: #ffffff; font-weight: 900; font-size: 12px; font-family: sans-serif; box-shadow: 0 4px 14px rgba(0,0,0,0.5);">
+        ${label}
+      </div>
+    `,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+};
+
+const createHazardIcon = () => {
+  return L.divIcon({
+    className: 'custom-hazard-marker',
+    html: `
+      <div style="position: relative; display: flex; align-items: center; justify-content: center;">
+        <div style="position: absolute; width: 32px; height: 32px; border-radius: 50%; background-color: rgba(239, 68, 68, 0.4); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+        <div style="background-color: #ef4444; border: 2px solid #ffffff; border-radius: 8px; padding: 4px; display: flex; align-items: center; justify-content: center; color: #ffffff; box-shadow: 0 4px 14px rgba(239,68,68,0.6);">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+  });
 };
 
 // Create SVG vehicle div icon
@@ -86,6 +154,15 @@ export const NERMap: React.FC<NERMapProps> = ({
   selectedVehicle,
   onSelectVehicle,
   onSelectNode,
+  routes = [],
+  selectedRouteId,
+  onSelectRoute,
+  originCoords,
+  destinationCoords,
+  originName,
+  destinationName,
+  avoidCoords,
+  avoidName,
 }) => {
   const { theme } = useTheme();
 
@@ -98,6 +175,8 @@ export const NERMap: React.FC<NERMapProps> = ({
   const tileAttribution =
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>';
 
+  const activeRouteId = selectedRouteId || (routes.length > 0 ? routes[0].route_id : null);
+
   return (
     <div className="relative w-full h-full min-h-[500px] rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800 shadow-md">
       <MapContainer
@@ -108,8 +187,125 @@ export const NERMap: React.FC<NERMapProps> = ({
       >
         <TileLayer url={tileUrl} attribution={tileAttribution} maxZoom={18} />
         <MapFlyToController selectedVehicle={selectedVehicle} />
+        <MapRouteBoundsController routes={routes} />
 
-        {/* Sensor Nodes & ML Risk Heat Circles */}
+        {/* 1. GraphHopper & AI Rerouting Polyline Layers */}
+        {routes.map((route, idx) => {
+          const isSelected = route.route_id === activeRouteId;
+          const isAvoid = route.status === 'AVOID';
+
+          let strokeColor = '#3b82f6'; // Blue default
+          if (isAvoid) {
+            strokeColor = '#ef4444'; // Red blocked
+          } else if (isSelected) {
+            strokeColor = route.status === 'SAFE' ? '#10b981' : '#f59e0b';
+          } else {
+            strokeColor = idx === 1 ? '#8b5cf6' : '#f97316'; // Purple or Orange
+          }
+
+          return (
+            <React.Fragment key={`route-${route.route_id}-${idx}`}>
+              {/* Glow for selected route */}
+              {isSelected && (
+                <Polyline
+                  positions={route.coordinates}
+                  pathOptions={{
+                    color: strokeColor,
+                    weight: 12,
+                    opacity: 0.25,
+                    lineCap: 'round',
+                    lineJoin: 'round',
+                  }}
+                />
+              )}
+
+              {/* Main Corridor Polyline */}
+              <Polyline
+                positions={route.coordinates}
+                pathOptions={{
+                  color: strokeColor,
+                  weight: isSelected ? 5.5 : 3.5,
+                  opacity: isSelected ? 0.95 : 0.6,
+                  dashArray: isSelected ? undefined : '6, 8',
+                  lineCap: 'round',
+                  lineJoin: 'round',
+                }}
+                eventHandlers={{
+                  click: () => {
+                    if (onSelectRoute) onSelectRoute(route.route_id);
+                  },
+                }}
+              >
+                <Tooltip sticky>
+                  <div className="text-[11px] font-sans">
+                    <span className="font-extrabold block">{route.label}</span>
+                    <span className="text-slate-500">
+                      {route.total_distance_km} km • {route.estimated_time_hr} hrs
+                    </span>
+                    <span
+                      className={`ml-1 font-bold ${
+                        route.status === 'SAFE' ? 'text-emerald-500' : 'text-rose-500'
+                      }`}
+                    >
+                      ({route.status})
+                    </span>
+                    {route.is_graphhopper && (
+                      <span className="block text-[9px] text-indigo-500 font-bold">
+                        ⚡ GraphHopper OSM Snapped
+                      </span>
+                    )}
+                  </div>
+                </Tooltip>
+              </Polyline>
+            </React.Fragment>
+          );
+        })}
+
+        {/* 2. Route Origin Landmark Pin */}
+        {originCoords && (
+          <Marker position={originCoords} icon={createLandmarkIcon('A', '#10b981')}>
+            <Tooltip permanent direction="top" offset={[0, -10]}>
+              <span className="font-extrabold text-[10px] uppercase">
+                Origin: {originName || 'A'}
+              </span>
+            </Tooltip>
+          </Marker>
+        )}
+
+        {/* 3. Route Destination Landmark Pin */}
+        {destinationCoords && (
+          <Marker position={destinationCoords} icon={createLandmarkIcon('B', '#2563eb')}>
+            <Tooltip permanent direction="top" offset={[0, -10]}>
+              <span className="font-extrabold text-[10px] uppercase">
+                Destination: {destinationName || 'B'}
+              </span>
+            </Tooltip>
+          </Marker>
+        )}
+
+        {/* 4. Active Hazard / Roadblock Marker */}
+        {avoidCoords && (
+          <Marker position={avoidCoords} icon={createHazardIcon()}>
+            <Tooltip permanent direction="bottom" offset={[0, 10]}>
+              <span className="font-extrabold text-[10px] text-rose-600 uppercase">
+                ROADBLOCK: {avoidName || 'Hazard Zone'}
+              </span>
+            </Tooltip>
+            <Circle
+              center={avoidCoords}
+              radius={18000}
+              pathOptions={{
+                color: '#ef4444',
+                fillColor: '#ef4444',
+                fillOpacity: 0.35,
+                weight: 2,
+                dashArray: '4, 6',
+              }}
+            />
+          </Marker>
+        )}
+
+        {/* 5. Sensor Nodes & ML Risk Heat Circles */}
         {sensors.map((sensor) => {
           let circleColor = '#10b981'; // Green (LOW)
           if (sensor.category === 'MODERATE' || (sensor.risk_score >= 25 && sensor.risk_score < 50))
@@ -192,7 +388,7 @@ export const NERMap: React.FC<NERMapProps> = ({
           );
         })}
 
-        {/* Live GPS Tracked Vehicles */}
+        {/* 6. Live GPS Tracked Vehicles */}
         {vehicles.map((v) => (
           <Marker
             key={v.id}
@@ -226,26 +422,34 @@ export const NERMap: React.FC<NERMapProps> = ({
 
       {/* Sleek Overlay Map Legend & Mode Badge */}
       <div className="absolute top-3 right-3 z-[400] bg-white/90 dark:bg-slate-900/90 backdrop-blur-md p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-md text-xs space-y-1.5">
-        <div className="font-bold text-[11px] text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-1">
-          GIS Risk Heat Legend
+        <div className="font-bold text-[11px] text-slate-700 dark:text-slate-200 border-b border-slate-200 dark:border-slate-800 pb-1 flex items-center justify-between gap-2">
+          <span>GIS Network Legend</span>
+          {routes.length > 0 && (
+            <span className="text-[9px] px-1.5 py-0.5 bg-indigo-100 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 font-bold rounded">
+              {routes[0]?.is_graphhopper ? '⚡ GraphHopper' : 'NetworkX'}
+            </span>
+          )}
         </div>
         <div className="flex items-center space-x-2 text-[10px]">
           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-          <span className="text-slate-600 dark:text-slate-300">LOW (&lt;25)</span>
+          <span className="text-slate-600 dark:text-slate-300">LOW Risk / Recommended</span>
         </div>
         <div className="flex items-center space-x-2 text-[10px]">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-          <span className="text-slate-600 dark:text-slate-300">MODERATE (25-50)</span>
+          <span className="text-slate-600 dark:text-slate-300">MODERATE Risk (25-50)</span>
         </div>
         <div className="flex items-center space-x-2 text-[10px]">
-          <span className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-          <span className="text-slate-600 dark:text-slate-300">HIGH (50-70)</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+          <span className="font-bold text-rose-600 dark:text-rose-400">HIGH / Blocked Detour</span>
         </div>
-        <div className="flex items-center space-x-2 text-[10px]">
-          <span className="w-2.5 h-2.5 rounded-full bg-rose-500 animate-ping" />
-          <span className="font-bold text-rose-600 dark:text-rose-400">SEVERE (&gt;70)</span>
-        </div>
+        {routes.length > 0 && (
+          <div className="pt-1 border-t border-slate-100 dark:border-slate-800 flex items-center space-x-2 text-[10px]">
+            <span className="w-3 h-1 bg-purple-500 rounded" />
+            <span className="text-slate-600 dark:text-slate-300">Alternate Corridor</span>
+          </div>
+        )}
       </div>
     </div>
   );
 };
+
