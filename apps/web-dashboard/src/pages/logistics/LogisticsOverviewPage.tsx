@@ -45,11 +45,15 @@ export const LogisticsOverviewPage: React.FC = () => {
       ]);
 
       if (sumRes.status === 'fulfilled') setSummary(sumRes.value);
-      if (vehRes.status === 'fulfilled') setVehicles(vehRes.value || []);
-      if (gapsRes.status === 'fulfilled') setSupplyGaps(gapsRes.value?.supply_gaps || []);
-      if (whRes.status === 'fulfilled') setWarehouses(whRes.value || []);
+      if (vehRes.status === 'fulfilled') setVehicles(Array.isArray(vehRes.value) ? vehRes.value : []);
+      if (gapsRes.status === 'fulfilled') {
+        const val = gapsRes.value;
+        setSupplyGaps(Array.isArray(val?.supply_gaps) ? val.supply_gaps : Array.isArray(val) ? val : []);
+      }
+      if (whRes.status === 'fulfilled') setWarehouses(Array.isArray(whRes.value) ? whRes.value : []);
       if (graphRes.status === 'fulfilled') {
-        const edges = (graphRes.value?.edges || []) as any[];
+        const rawEdges = graphRes.value?.edges;
+        const edges = Array.isArray(rawEdges) ? rawEdges : [];
         setRiskyCorridors(
           edges
             .filter((e) => (e.risk_score || 0) >= 40)
@@ -81,10 +85,15 @@ export const LogisticsOverviewPage: React.FC = () => {
     return <ErrorState message={error} onRetry={loadOverviewData} />;
   }
 
-  const activeVehiclesCount = vehicles.filter((v) => v.status !== 'COMPLETED' && v.status !== 'DELIVERED').length;
-  const delayedVehiclesCount = vehicles.filter((v) => v.status === 'DELAYED' || v.delivery_status?.includes('DELAYED')).length;
-  const atRiskVehiclesCount = vehicles.filter((v) => v.status === 'AT_RISK' || v.status === 'SOS' || v.status === 'BREAKDOWN').length;
-  const criticalSupplyCount = supplyGaps.filter((g) => g.status === 'HIGH_RISK_DELAY').length;
+  const safeVehicles = Array.isArray(vehicles) ? vehicles : [];
+  const safeSupplyGaps = Array.isArray(supplyGaps) ? supplyGaps : [];
+  const safeWarehouses = Array.isArray(warehouses) ? warehouses : [];
+  const safeRiskyCorridors = Array.isArray(riskyCorridors) ? riskyCorridors : [];
+
+  const activeVehiclesCount = safeVehicles.filter((v) => v.status !== 'COMPLETED' && v.status !== 'DELIVERED').length;
+  const delayedVehiclesCount = safeVehicles.filter((v) => v.status === 'DELAYED' || v.delivery_status?.includes('DELAYED')).length;
+  const atRiskVehiclesCount = safeVehicles.filter((v) => v.status === 'AT_RISK' || v.status === 'SOS' || v.status === 'BREAKDOWN').length;
+  const criticalSupplyCount = safeSupplyGaps.filter((g) => g.status === 'HIGH_RISK_DELAY').length;
 
   const vehicleColumns: Column<any>[] = [
     {
@@ -160,8 +169,8 @@ export const LogisticsOverviewPage: React.FC = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricTile
           label="Active Convoys"
-          value={vehicles.length > 0 ? activeVehiclesCount : 0}
-          context={`${vehicles.length} total registered fleet units`}
+          value={safeVehicles.length > 0 ? activeVehiclesCount : 0}
+          context={`${safeVehicles.length} total registered fleet units`}
           tone="healthy"
           provenance="SIMULATED"
           icon={<Truck className="w-5 h-5 text-[var(--adm-healthy)]" />}
@@ -206,7 +215,7 @@ export const LogisticsOverviewPage: React.FC = () => {
           </button>
         }
       >
-        {vehicles.length === 0 ? (
+        {safeVehicles.length === 0 ? (
           <EmptyState
             title="NO ACTIVE CONVOYS"
             description="There are currently no active transport vehicles reporting telemetry in the logistics network."
@@ -214,7 +223,7 @@ export const LogisticsOverviewPage: React.FC = () => {
         ) : (
           <DataTable
             columns={vehicleColumns}
-            data={vehicles.slice(0, 6)}
+            data={safeVehicles.slice(0, 6)}
             keyExtractor={(v) => v.id || v.code}
           />
         )}
@@ -236,13 +245,13 @@ export const LogisticsOverviewPage: React.FC = () => {
             </button>
           }
         >
-          {supplyGaps.length === 0 ? (
+          {safeSupplyGaps.length === 0 ? (
             <div className="py-8 text-center text-xs text-[var(--adm-ink-3)]">
               All monitored regional districts report stable supply buffer levels.
             </div>
           ) : (
             <div className="divide-y divide-[var(--adm-border)]">
-              {supplyGaps.slice(0, 4).map((gap, idx) => (
+              {safeSupplyGaps.slice(0, 4).map((gap, idx) => (
                 <div key={idx} className="py-3 flex items-start justify-between gap-4">
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
@@ -290,13 +299,13 @@ export const LogisticsOverviewPage: React.FC = () => {
             </button>
           }
         >
-          {riskyCorridors.length === 0 ? (
+          {safeRiskyCorridors.length === 0 ? (
             <div className="py-8 text-center text-xs text-[var(--adm-ink-3)] italic">
               No monitored highway corridors are currently flagged for elevated risk.
             </div>
           ) : (
             <div className="space-y-3">
-              {riskyCorridors.map((c, idx) => {
+              {safeRiskyCorridors.map((c, idx) => {
                 const isSevere = (c.risk_score || 0) >= 70;
                 return (
                   <div

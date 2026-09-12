@@ -6,13 +6,39 @@ import { UserRole } from '../types/auth';
 import { useTranslation } from 'react-i18next';
 import { LanguageSelector } from '../components/common/LanguageSelector';
 
+const isPathAllowedForRole = (path: string, role?: UserRole): boolean => {
+  if (!role) return false;
+  const segment = path.split('/')[1] || '';
+  const basePath = '/' + segment;
+
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
+    return true;
+  }
+
+  switch (basePath) {
+    case '/logistics':
+      return role === 'LOGISTICS_OPERATOR';
+    case '/emergency':
+      return role === 'EMERGENCY_OPERATOR' || role === 'DISTRICT_AUTHORITY';
+    case '/field':
+      return role === 'FIELD_OFFICER';
+    case '/driver':
+      return role === 'DRIVER';
+    case '/profile':
+      return true;
+    default:
+      return false;
+  }
+};
+
 const getRedirectPath = (role?: UserRole) => {
   switch (role) {
     case 'SUPER_ADMIN':
     case 'ADMIN':
       return '/admin';
     case 'DISTRICT_AUTHORITY':
-      return '/district-dashboard';
+    case 'EMERGENCY_OPERATOR':
+      return '/emergency';
     case 'LOGISTICS_OPERATOR':
       return '/logistics';
     case 'FIELD_OFFICER':
@@ -69,7 +95,15 @@ export const LoginPage: React.FC = () => {
       const user = await login(payload);
 
       const from = (location.state as any)?.from?.pathname;
-      const targetPath = from || getRedirectPath(user.role);
+      const isValidFrom =
+        from &&
+        from !== '/login' &&
+        from !== '/unauthorized' &&
+        from !== '/register' &&
+        from !== '/' &&
+        isPathAllowedForRole(from, user.role);
+
+      const targetPath = isValidFrom ? from : getRedirectPath(user.role);
       navigate(targetPath, { replace: true });
     } catch (err: any) {
       const msg =

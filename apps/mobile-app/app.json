@@ -23,6 +23,11 @@
         "backgroundColor": "#0f172a"
       },
       "package": "com.sih262002.nerlogisense",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyAiW4J56cU_sCynaGI-rA8sCjvh57J7uOk"
+        }
+      },
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
         "android.permission.ACCESS_FINE_LOCATION",

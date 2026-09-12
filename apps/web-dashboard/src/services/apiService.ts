@@ -7,6 +7,11 @@ import axios from 'axios';
 // VITE_API_URL must include the /api suffix -- see apps/web-dashboard/.env.
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
 
+// Uploaded field-report photos are served by FastAPI's static mount at
+// /uploads/*, off the app root -- not under /api -- so strip the /api
+// suffix to get the base URL for building full image src URLs.
+export const MEDIA_BASE_URL = API_BASE_URL.replace(/\/api\/?$/, '');
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {

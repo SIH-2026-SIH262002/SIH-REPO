@@ -15,6 +15,11 @@ export const incidentsApi = {
     formData.append('description', incident.description || '');
     formData.append('lat', String(incident.lat));
     formData.append('lon', String(incident.lon));
+    if (incident.timestamp) {
+      // Device capture time -- the same timestamp burned into the photo's
+      // GPS/time watermark, so the caption and the stored record agree.
+      formData.append('captured_at', incident.timestamp);
+    }
 
     if (incident.photo_uri) {
       const filename = incident.photo_uri.split('/').pop() || 'photo.jpg';

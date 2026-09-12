@@ -191,7 +191,7 @@ export const DashboardPage: React.FC = () => {
           {activeTab === 'risk' && <MLRiskPlaygroundView />}
           {activeTab === 'sos' && <EmergencySOSView />}
           {activeTab === 'field' && <FieldView />}
-          {activeTab === 'vehicles' && <VehiclesView />}
+          {activeTab === 'vehicles' && <VehiclesView vehicles={vehicles} onSelectVehicle={setSelectedVehicle} />}
           {activeTab === 'shipments' && <ShipmentsView />}
           {activeTab === 'notifications' && <NotificationsOutboxView />}
           {activeTab === 'settings' && <SettingsView />}

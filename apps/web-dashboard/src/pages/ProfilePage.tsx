@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import { authApi } from '../api/authApi';
 import { NER_DISTRICTS } from '../types/auth';
@@ -18,6 +19,12 @@ import { Navbar } from '../components/common/Navbar';
 
 export const ProfilePage: React.FC = () => {
   const { user, updateUserProfile, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   const [activeTab, setActiveTab] = useState<'info' | 'edit' | 'password'>('info');
 
@@ -94,7 +101,7 @@ export const ProfilePage: React.FC = () => {
     }
   };
 
-  if (!user) return null;
+  if (!user) return <Navigate to="/login" replace />;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
@@ -130,7 +137,7 @@ export const ProfilePage: React.FC = () => {
           </div>
 
           <button
-            onClick={() => logout()}
+            onClick={handleLogout}
             className="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-lg text-xs font-semibold flex items-center space-x-1.5 transition"
           >
             <LogOut className="w-4 h-4 text-rose-600" />

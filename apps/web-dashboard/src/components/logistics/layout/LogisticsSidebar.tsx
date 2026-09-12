@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import {
   LayoutDashboard,
@@ -26,7 +26,13 @@ interface LogisticsSidebarProps {
 
 export const LogisticsSidebar: React.FC<LogisticsSidebarProps> = ({ open, onNavigate }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login', { replace: true });
+  };
 
   const NAV_ITEMS = [
     { to: '/logistics', label: t('nav.logistics.overview', 'Operations Overview'), icon: LayoutDashboard, end: true },
@@ -120,7 +126,7 @@ export const LogisticsSidebar: React.FC<LogisticsSidebarProps> = ({ open, onNavi
             <span>{t('common.profile', 'Profile')}</span>
           </NavLink>
           <button
-            onClick={() => logout()}
+            onClick={handleLogout}
             className="text-[var(--adm-critical)] hover:underline flex items-center gap-1 font-medium"
           >
             <LogOut className="w-3.5 h-3.5" />
