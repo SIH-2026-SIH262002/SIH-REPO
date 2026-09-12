@@ -115,6 +115,24 @@ async function seedDemoAccountsIfEmpty() {
                 phone: '+919876543211', role: 'DRIVER', district: 'Kamrup Metro',
                 organization: 'NER Logistics Fleet', accountStatus: 'ACTIVE'
             }
+        },
+        {
+            identifier: 'emergency@nerlogisense.gov.in',
+            password: 'password123',
+            metadata: {
+                fullName: 'Vikram Das', email: 'emergency@nerlogisense.gov.in',
+                phone: '+919876543214', role: 'EMERGENCY_OPERATOR', district: 'Cachar',
+                organization: 'Assam State Disaster Management Authority', accountStatus: 'ACTIVE'
+            }
+        },
+        {
+            identifier: 'logistics@nerlogisense.gov.in',
+            password: 'password123',
+            metadata: {
+                fullName: 'Priya Sharma', email: 'logistics@nerlogisense.gov.in',
+                phone: '+919876543213', role: 'LOGISTICS_OPERATOR', district: 'Kamrup Metro',
+                organization: 'NER Logistics Command Center', accountStatus: 'ACTIVE'
+            }
         }
     ];
 

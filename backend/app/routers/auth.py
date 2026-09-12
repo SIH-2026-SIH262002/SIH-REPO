@@ -75,6 +75,28 @@ USERS_DB = {
         "organization": "NER Logistics Command Center",
         "password": "password123",
         "status": "ACTIVE",
+    },
+    "emergency@nerlogisense.gov.in": {
+        "userId": "usr_emg_01",
+        "fullName": "Vikram Das",
+        "email": "emergency@nerlogisense.gov.in",
+        "phone": "+919876543214",
+        "role": "EMERGENCY_OPERATOR",
+        "district": "Cachar",
+        "organization": "Assam State Disaster Management Authority",
+        "password": "password123",
+        "status": "ACTIVE",
+    },
+    "test.emergency@nerlogisense.gov.in": {
+        "userId": "user_d78lev3",
+        "fullName": "Test Emergency Op",
+        "email": "test.emergency@nerlogisense.gov.in",
+        "phone": "+919876543215",
+        "role": "EMERGENCY_OPERATOR",
+        "district": "Cachar",
+        "organization": "Test Org",
+        "password": "password123",
+        "status": "ACTIVE",
     }
 }
 
