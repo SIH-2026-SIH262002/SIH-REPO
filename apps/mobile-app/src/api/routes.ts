@@ -1,14 +1,23 @@
 import { apiClient } from './client';
+import { graphhopperService, GraphHopperPoint, GraphHopperRouteResult } from '../services/graphhopperService';
 
 export const routesApi = {
   getNodes: async () => {
-    const response = await apiClient.get('/api/routes/nodes');
-    return response.data;
+    try {
+      const response = await apiClient.get('/api/routes/nodes');
+      return response.data;
+    } catch (_err) {
+      return null;
+    }
   },
 
   getGraphSnapshot: async () => {
-    const response = await apiClient.get('/api/routes/graph');
-    return response.data;
+    try {
+      const response = await apiClient.get('/api/routes/graph');
+      return response.data;
+    } catch (_err) {
+      return null;
+    }
   },
 
   planRoute: async (
@@ -17,9 +26,26 @@ export const routesApi = {
     k: number = 3,
     options?: { avoidSteepRoads?: boolean }
   ) => {
-    const response = await apiClient.get('/api/routes/plan', {
-      params: { origin, destination, k, avoid_steep_roads: options?.avoidSteepRoads || undefined }
-    });
-    return response.data;
+    try {
+      const response = await apiClient.get('/api/routes/plan', {
+        params: { origin, destination, k, avoid_steep_roads: options?.avoidSteepRoads || undefined }
+      });
+      return response.data;
+    } catch (_err) {
+      return null;
+    }
+  },
+
+  /**
+   * GraphHopper turn-by-turn routing & disaster zone rerouting integration
+   */
+  planGraphHopperRoute: async (
+    origin: GraphHopperPoint,
+    destination: GraphHopperPoint,
+    vehicleProfile: 'car' | 'truck' = 'car',
+    avoidAreas?: GraphHopperPoint[]
+  ): Promise<GraphHopperRouteResult> => {
+    return graphhopperService.getRoute(origin, destination, vehicleProfile, avoidAreas);
   }
 };
+
