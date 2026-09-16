@@ -29,15 +29,14 @@
  *     activeRoute?.status === 'AVOID' ? 'red' : activeRoute?.status === 'CAUTION' ? 'orange' : 'green'
  *   } />
  *
- * NOTE ON SCOPE: the planner's graph is 18 towns / ~20 highway segments
- * (backend/app/graph_data.py), not turn-by-turn OSM geometry. The polyline
- * this hook returns is a waypoint-to-waypoint line through those towns --
- * correct for "avoid the dangerous corridor, take the other one" demo
- * behaviour, but not lane-level navigation. If real road-following polylines
- * are needed later, feed this hook's `activeRoute.path` node sequence as
- * waypoints into an OSM-based router (GraphHopper/OSRM/Valhalla) purely for
- * geometry -- keep this hook as the thing that decides WHICH towns to route
- * through.
+ * NOTE ON GEOMETRY: the backend tries the real self-hosted GraphHopper engine
+ * first (actual road-following polyline + turn-by-turn instructions), and
+ * only falls back to the NetworkX risk-graph (18 towns / ~20 highway
+ * segments, backend/app/graph_data.py) when GraphHopper is unreachable --
+ * `routeCoordinates` below already prefers `activeRoute.coordinates` when
+ * `is_graphhopper` is true, and only draws a waypoint-to-waypoint line
+ * through the towns as a fallback when it isn't. Never fabricate geometry
+ * that GraphHopper didn't actually return.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { apiClient } from '../api/client';
@@ -61,6 +60,13 @@ export interface RouteSegment {
   blocked: boolean;
 }
 
+export interface RouteInstruction {
+  text: string;
+  distance_m: number;
+  time_ms: number;
+  sign: number;
+}
+
 export interface PlannedRoute {
   route_id: string;
   label: string;
@@ -72,6 +78,16 @@ export interface PlannedRoute {
   max_segment_risk: number;
   status: RouteStatus;
   any_segment_blocked: boolean;
+  /** Real GraphHopper road-following geometry as [lat, lon] pairs -- only
+   * present when is_graphhopper is true. Absent (undefined) for the
+   * NetworkX fallback, which only has waypoint-to-waypoint straight lines --
+   * never fabricate geometry to fill this in. */
+  coordinates?: [number, number][];
+  /** Real GraphHopper turn-by-turn instructions, passed through verbatim
+   * from the backend -- only present when is_graphhopper is true. */
+  instructions?: RouteInstruction[];
+  is_graphhopper?: boolean;
+  engine?: string;
 }
 
 interface LatLng {
@@ -287,6 +303,13 @@ export function useAutoReroute({
 
   const routeCoordinates: LatLng[] = useMemo(() => {
     if (!activeRoute) return [];
+    // Prefer GraphHopper's real road-following geometry when the backend
+    // actually produced it -- only fall back to straight waypoint-to-waypoint
+    // lines through the town graph when GraphHopper wasn't used, since that's
+    // the only geometry that exists in that case (never fabricate the rest).
+    if (activeRoute.is_graphhopper && activeRoute.coordinates && activeRoute.coordinates.length > 0) {
+      return activeRoute.coordinates.map(([lat, lon]) => ({ latitude: lat, longitude: lon }));
+    }
     return activeRoute.path.map((key) => nodeCoords[key]).filter(Boolean) as LatLng[];
   }, [activeRoute, nodeCoords]);
 
