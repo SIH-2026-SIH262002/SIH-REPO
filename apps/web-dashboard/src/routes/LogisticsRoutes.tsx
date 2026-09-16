@@ -10,6 +10,7 @@ import { LogisticsReroutingPage } from '../pages/logistics/LogisticsReroutingPag
 import { LogisticsRiskPage } from '../pages/logistics/LogisticsRiskPage';
 import { LogisticsWarehousesPage } from '../pages/logistics/LogisticsWarehousesPage';
 import { LogisticsNotificationsPage } from '../pages/logistics/LogisticsNotificationsPage';
+import { LogisticsDriverOpsPage } from '../pages/logistics/LogisticsDriverOpsPage';
 import { ProfilePage } from '../pages/ProfilePage';
 
 /**
@@ -29,6 +30,7 @@ export const LogisticsRoutes: React.FC = () => {
         <Route path="risk" element={<LogisticsRiskPage />} />
         <Route path="warehouses" element={<LogisticsWarehousesPage />} />
         <Route path="notifications" element={<LogisticsNotificationsPage />} />
+        <Route path="drivers" element={<LogisticsDriverOpsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>
     </Routes>

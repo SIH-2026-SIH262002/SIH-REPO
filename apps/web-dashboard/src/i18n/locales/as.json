@@ -125,7 +125,8 @@
       "notifications": "জাননী",
       "profile": "প্ৰফাইল",
       "regionalOps": "আঞ্চলিক পৰিচালনা",
-      "districtSuffix": "জিলা"
+      "districtSuffix": "জিলা",
+      "drivers": "চালক পৰিচালনা আৰু সুৰক্ষা"
     }
   },
   "roles": {
@@ -397,5 +398,19 @@
     "grantAccess": "সিস্টেম ভূমিকা প্ৰদান কৰক",
     "auditLogs": "নিৰীক্ষণ লগ",
     "activeSessions": "সক্ৰিয় সুৰক্ষিত সেশন"
+  },
+  "driverOps": {
+    "title": "চালক সুৰক্ষা আৰু যাত্ৰা ধাৰাবাহিকতা",
+    "subtitle": "চালক জীৱনচক্ৰ, জৰুৰীকালীন সাহায্য সমন্বয় আৰু সুৰক্ষিত যাত্ৰা হস্তান্তৰ",
+    "refresh": "সতেজ কৰক",
+    "registerDriver": "চালক পঞ্জীয়ন কৰক",
+    "totalDrivers": "মুঠ চালক",
+    "onTrip": "সক্ৰিয় যাত্ৰাত",
+    "openAssistance": "সাহায্য অনুৰোধ",
+    "pendingHandovers": "বাকী থকা হস্তান্তৰ",
+    "tabDrivers": "চালক পঞ্জী",
+    "tabAssistance": "সাহায্য শাৰী",
+    "tabHandover": "সুৰক্ষিত যাত্ৰা হস্তান্তৰ",
+    "searchDrivers": "নাম বা অনুজ্ঞাপত্ৰৰে চালক সন্ধান কৰক..."
   }
 }

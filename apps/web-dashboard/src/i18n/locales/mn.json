@@ -125,7 +125,8 @@
       "notifications": "জাননী",
       "profile": "প্রোফাইল",
       "regionalOps": "লম্দমগী থবক",
-      "districtSuffix": "ডিস্ত্রিক্ত"
+      "districtSuffix": "ডিস্ত্রিক্ত",
+      "drivers": "দ্রাইভর থবক অমসুং ঙাক-শেন"
     }
   },
   "roles": {
@@ -397,5 +398,19 @@
     "grantAccess": "সিস্তেম থৌদাং পীবা",
     "auditLogs": "অদিত লোগশিং",
     "activeSessions": "চংগৎলিবা সেকিউর সেসন"
+  },
+  "driverOps": {
+    "title": "দ্রাইভর ঙাক-শেন অমসুং খোঙচৎ লেপহন্দবা",
+    "subtitle": "দ্রাইভরগী পুন্সিখোঙচৎ, অৱাবা তেংবাং অমসুং খোঙচৎ খুৎশিনবা",
+    "refresh": "অনৌবা ওন্থোকউ",
+    "registerDriver": "দ্রাইভর মিং চল্লু",
+    "totalDrivers": "অপুনবা দ্রাইভর",
+    "onTrip": "খোঙচত্তা লৈবা",
+    "openAssistance": "তেংবাংগী তকপশিং",
+    "pendingHandovers": "খুৎশিনগদবা লৈবা",
+    "tabDrivers": "দ্রাইভরগী রেজিস্ত্রি",
+    "tabAssistance": "তেংবাংগী পরিং",
+    "tabHandover": "অকোয়বা য়াওদবা খোঙচৎ খুৎশিনবা",
+    "searchDrivers": "দ্রাইভর থিদোকউ..."
   }
 }

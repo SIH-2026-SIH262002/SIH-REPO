@@ -1,7 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
 export interface WebSocketEvent {
-  kind: 'sensor_update' | 'alert' | 'vehicle_update' | 'sos' | 'system_reset';
+  kind:
+    | 'sensor_update'
+    | 'alert'
+    | 'vehicle_update'
+    | 'sos'
+    | 'sos_resolved'
+    | 'ground_report'
+    | 'system_reset'
+    | 'route_dispatched'
+    | 'route_rerouted';
   data?: any;
   seq_id?: number;
   type?: string;

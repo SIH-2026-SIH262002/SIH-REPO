@@ -125,7 +125,8 @@
       "notifications": "বিজ্ঞপ্তি",
       "profile": "প্রোফাইল",
       "regionalOps": "আঞ্চলিক পরিচালনা",
-      "districtSuffix": "জেলা"
+      "districtSuffix": "জেলা",
+      "drivers": "ড্রাইভার পরিচালনা ও সুরক্ষা"
     }
   },
   "roles": {
@@ -397,5 +398,19 @@
     "grantAccess": "সিস্টেম ভূমিকা প্রদান",
     "auditLogs": "নিরীক্ষা লগ",
     "activeSessions": "সক্রিয় সুরক্ষিত সেশন"
+  },
+  "driverOps": {
+    "title": "ড্রাইভার সুরক্ষা ও যাত্রা ধারাবাহিকতা",
+    "subtitle": "ড্রাইভার জীবনচক্র, জরুরি সহায়তা সমন্বয় ও নিরাপদ যাত্রা হস্তান্তর",
+    "refresh": "রিফ্রেশ করুন",
+    "registerDriver": "ড্রাইভার নিবন্ধন করুন",
+    "totalDrivers": "মোট ড্রাইভার",
+    "onTrip": "সক্রিয় যাত্রায়",
+    "openAssistance": "সহায়তা অনুরোধ",
+    "pendingHandovers": "মুলতুবি হস্তান্তর",
+    "tabDrivers": "ড্রাইভার রেজিস্ট্রি",
+    "tabAssistance": "সহায়তা সারি",
+    "tabHandover": "নিরাপদ যাত্রা হস্তান্তর",
+    "searchDrivers": "নাম বা লাইসেন্স দিয়ে ড্রাইভার খুঁজুন..."
   }
 }

@@ -125,7 +125,8 @@
       "notifications": "Notifications",
       "profile": "Profile",
       "regionalOps": "Regional Operations",
-      "districtSuffix": "District"
+      "districtSuffix": "District",
+      "drivers": "Driver Operations & Safety"
     }
   },
   "roles": {
@@ -397,5 +398,19 @@
     "grantAccess": "Grant System Role",
     "auditLogs": "Audit Control Logs",
     "activeSessions": "Active Secure Sessions"
+  },
+  "driverOps": {
+    "title": "Driver Safety & Trip Continuity",
+    "subtitle": "Mission-critical driver lifecycle, emergency assistance coordination, and risk-aware trip handover",
+    "refresh": "Refresh",
+    "registerDriver": "Register Driver",
+    "totalDrivers": "Total Drivers",
+    "onTrip": "On Active Trip",
+    "openAssistance": "Assistance Requests",
+    "pendingHandovers": "Pending Handovers",
+    "tabDrivers": "Driver Registry",
+    "tabAssistance": "Assistance Queue",
+    "tabHandover": "Safe Trip Handover",
+    "searchDrivers": "Search drivers by name, username, license or depot..."
   }
 }

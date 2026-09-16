@@ -11,6 +11,7 @@ import {
   RotateCcw,
   Sparkles,
   Layers,
+  LocateFixed,
 } from 'lucide-react';
 import { apiService } from '../../services/apiService';
 import { NERMap, MapRoutePath, MapSensorNode } from '../map/NERMap';
@@ -18,7 +19,10 @@ import { NERMap, MapRoutePath, MapSensorNode } from '../map/NERMap';
 const NER_TOWNS = [
   'Guwahati', 'Shillong', 'Silchar', 'Imphal', 'Kohima',
   'Aizawl', 'Agartala', 'Itanagar', 'Gangtok', 'Tezpur',
-  'Haflong', 'Dimapur', 'Diphu', 'Nongpoh', 'Jowai'
+  'Haflong', 'Dimapur', 'Diphu', 'Nongpoh', 'Jowai',
+  'Tawang', 'Dharmanagar', 'Tinsukia', 'Jorhat', 'Dibrugarh',
+  'Bongaigaon', 'Dhubri', 'Lumding', 'Umrangso', 'Siliguri',
+  'Kolkata', 'Delhi', 'Mumbai', 'Bengaluru'
 ];
 
 export const AIRoutePlannerView: React.FC = () => {
@@ -26,11 +30,33 @@ export const AIRoutePlannerView: React.FC = () => {
   const [destination, setDestination] = useState('Silchar');
   const [cargoType, setCargoType] = useState('Emergency Medicines');
   const [isLoading, setIsLoading] = useState(false);
+  const [isLocating, setIsLocating] = useState(false);
   const [routeData, setRouteData] = useState<any>(null);
   const [selectedRouteId, setSelectedRouteId] = useState<string | null>(null);
   const [avoidNode, setAvoidNode] = useState<string | null>(null);
   const [sensors, setSensors] = useState<MapSensorNode[]>([]);
   const [dispatchedRouteId, setDispatchedRouteId] = useState<string | null>(null);
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by your browser.');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        setOrigin(`${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
+        setIsLocating(false);
+      },
+      (error) => {
+        console.warn('Geolocation Error:', error);
+        alert('Could not get GPS location. Please check browser location permissions.');
+        setIsLocating(false);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
 
   // Fetch sensor telemetry for background map context
   useEffect(() => {
@@ -110,20 +136,34 @@ export const AIRoutePlannerView: React.FC = () => {
         {/* Origin / Destination & Cargo Selectors */}
         <div className="flex flex-wrap items-end gap-3">
           <div>
-            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-              Origin (A)
-            </label>
-            <select
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                Origin (A)
+              </label>
+              <button
+                type="button"
+                onClick={handleUseCurrentLocation}
+                disabled={isLocating}
+                className="text-[10px] text-indigo-600 dark:text-indigo-400 hover:underline font-bold flex items-center gap-1 disabled:opacity-50"
+                title="Use current GPS location"
+              >
+                <LocateFixed className={`w-3 h-3 ${isLocating ? 'animate-spin' : ''}`} />
+                {isLocating ? 'Locating...' : 'My GPS'}
+              </button>
+            </div>
+            <input
+              type="text"
+              list="origin-towns-list"
               value={origin}
               onChange={(e) => setOrigin(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs font-bold rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500"
-            >
+              placeholder="Type any city, village, address, or lat,lng..."
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs font-bold rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-48 sm:w-56 shadow-sm"
+            />
+            <datalist id="origin-towns-list">
               {NER_TOWNS.map((town) => (
-                <option key={`orig-${town}`} value={town}>
-                  {town}
-                </option>
+                <option key={`orig-${town}`} value={town} />
               ))}
-            </select>
+            </datalist>
           </div>
 
           <div className="pb-2 hidden sm:block">
@@ -134,17 +174,19 @@ export const AIRoutePlannerView: React.FC = () => {
             <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
               Destination (B)
             </label>
-            <select
+            <input
+              type="text"
+              list="dest-towns-list"
               value={destination}
               onChange={(e) => setDestination(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs font-bold rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500"
-            >
+              placeholder="Type any city, village, address, or lat,lng..."
+              className="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 text-xs font-bold rounded-xl px-3 py-2 focus:ring-2 focus:ring-indigo-500 w-48 sm:w-56 shadow-sm"
+            />
+            <datalist id="dest-towns-list">
               {NER_TOWNS.map((town) => (
-                <option key={`dest-${town}`} value={town}>
-                  {town}
-                </option>
+                <option key={`dest-${town}`} value={town} />
               ))}
-            </select>
+            </datalist>
           </div>
 
           <div>
@@ -166,9 +208,10 @@ export const AIRoutePlannerView: React.FC = () => {
           <button
             onClick={() => fetchRoutePlan(avoidNode)}
             disabled={isLoading}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md shadow-indigo-600/30 transition disabled:opacity-50"
+            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-indigo-600/30 transition disabled:opacity-50 flex items-center gap-1.5"
           >
-            {isLoading ? 'Calculating...' : 'Recalculate'}
+            <Navigation className="w-4 h-4" />
+            <span>{isLoading ? 'Calculating...' : 'Get Directions'}</span>
           </button>
         </div>
       </div>
@@ -269,6 +312,8 @@ export const AIRoutePlannerView: React.FC = () => {
                 : null
             }
             avoidName={avoidNode}
+            onSetOriginFromMap={(coords) => setOrigin(`${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`)}
+            onSetDestinationFromMap={(coords) => setDestination(`${coords[0].toFixed(4)}, ${coords[1].toFixed(4)}`)}
           />
         </div>
       </div>

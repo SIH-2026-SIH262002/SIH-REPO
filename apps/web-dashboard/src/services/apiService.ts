@@ -87,16 +87,60 @@ export const apiService = {
     return response.data;
   },
 
+  // Geocoding & Address Disambiguation
+  geocodeAddress: async (address: string) => {
+    const response = await apiClient.post('/routes/geocode', { address });
+    return response.data;
+  },
+
   // AI Route Planning & GraphHopper Multi-Routing
-  planRoute: async (origin: string, destination: string, avoidNode?: string, criticalityMultiplier = 1.0) => {
+  planRoute: async (
+    origin: string,
+    destination: string,
+    avoidNode?: string,
+    criticalityMultiplier = 1.0,
+    avoidSteepRoads = false
+  ) => {
     const response = await apiClient.get('/routes/plan', {
       params: {
         origin,
         destination,
         avoid_node: avoidNode || undefined,
         criticality_multiplier: criticalityMultiplier,
+        avoid_steep_roads: avoidSteepRoads,
       },
     });
+    return response.data;
+  },
+
+  // Real dispatch: backend re-validates the route server-side (never trusts
+  // client-claimed geometry/risk) before assigning it to a vehicle.
+  assignRoute: async (
+    vehicleId: string,
+    params: {
+      origin: string;
+      destination: string;
+      avoidNode?: string;
+      avoidSteepRoads?: boolean;
+      criticalityMultiplier?: number;
+      routeId?: string;
+      overrideAvoidRisk?: boolean;
+    }
+  ) => {
+    const response = await apiClient.post(`/vehicles/${vehicleId}/assign-route`, {
+      origin: params.origin,
+      destination: params.destination,
+      avoid_node: params.avoidNode || undefined,
+      avoid_steep_roads: params.avoidSteepRoads ?? false,
+      criticality_multiplier: params.criticalityMultiplier ?? 1.0,
+      route_id: params.routeId || undefined,
+      override_avoid_risk: params.overrideAvoidRisk ?? false,
+    });
+    return response.data;
+  },
+
+  getActiveRoute: async (vehicleId: string) => {
+    const response = await apiClient.get(`/vehicles/${vehicleId}/active-route`);
     return response.data;
   },
 

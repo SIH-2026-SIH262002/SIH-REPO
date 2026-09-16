@@ -12,6 +12,7 @@ import {
   Warehouse,
   Bell,
   User,
+  Users,
   LogOut,
   Shield,
   X,
@@ -43,6 +44,7 @@ export const LogisticsSidebar: React.FC<LogisticsSidebarProps> = ({ open, onNavi
     { to: '/logistics/reroutes', label: t('nav.logistics.reroutes', 'Reroute Decisions'), icon: GitBranch },
     { to: '/logistics/risk', label: t('nav.logistics.risk', 'Logistics Risk & Incidents'), icon: AlertTriangle },
     { to: '/logistics/warehouses', label: t('nav.logistics.warehouses', 'Warehouses & Supply'), icon: Warehouse },
+    { to: '/logistics/drivers', label: t('nav.logistics.drivers', 'Driver Operations & Safety'), icon: Users },
     { to: '/logistics/notifications', label: t('nav.logistics.notifications', 'Notifications'), icon: Bell },
   ];
 

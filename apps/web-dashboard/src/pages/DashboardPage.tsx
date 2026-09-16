@@ -70,14 +70,23 @@ export const DashboardPage: React.FC = () => {
         if (rawVehicles.status === 'fulfilled' && Array.isArray(rawVehicles.value)) {
           setVehicles(
             rawVehicles.value.map((v: any) => ({
-              id: v.id || v.code,
+              id: String(v.id || v.code),
               code: v.code || v.id,
               driver: v.driver || v.driver_name || 'Driver',
+              phone: v.phone || v.driver_phone || '+91-99887-12345',
               status: v.status as any,
               location: { lat: v.lat || 26.15, lng: v.lon || 92.93 },
               origin: v.origin_name || v.origin || 'Guwahati',
               destination: v.destination_name || v.destination || 'Silchar',
               cargo: v.cargo || v.cargo_type || 'Essential Supplies',
+              speed_kmh: Number(v.speed_kmph ?? v.speed_kmh ?? v.speed ?? 45),
+              eta: v.eta_formatted ?? (typeof v.eta === 'string' ? v.eta : undefined),
+              eta_minutes: v.eta_minutes,
+              remaining_distance_km: v.remaining_distance_km,
+              route_label: v.route_label,
+              route_path_names: v.route_path_names,
+              route_coordinates: v.active_route_coordinates,
+              current_segment: v.current_segment,
             }))
           );
         }
@@ -97,6 +106,44 @@ export const DashboardPage: React.FC = () => {
       setSensors((prev) =>
         prev.map((s) => (s.node_key.toUpperCase() === updated.node_key.toUpperCase() ? { ...s, ...updated } : s))
       );
+    }
+
+    if (lastEvent.kind === 'vehicle_update' && lastEvent.data) {
+      const updated = lastEvent.data;
+      const uid = String(updated.id || updated.code);
+      setVehicles((prev) =>
+        prev.map((v) =>
+          String(v.id || v.code) === uid
+            ? {
+                ...v,
+                location: { lat: updated.lat, lng: updated.lon },
+                speed_kmh: updated.speed_kmph ?? updated.speed_kmh,
+                eta: updated.eta_formatted ?? updated.eta,
+                eta_minutes: updated.eta_minutes,
+                remaining_distance_km: updated.remaining_distance_km,
+                route_label: updated.route_label,
+                route_path_names: updated.route_path_names,
+                route_coordinates: updated.active_route_coordinates,
+                current_segment: updated.current_segment,
+              }
+            : v
+        )
+      );
+      setSelectedVehicle((prev) => {
+        if (!prev || String(prev.id) !== uid) return prev;
+        return {
+          ...prev,
+          location: { lat: updated.lat, lng: updated.lon },
+          speed_kmh: updated.speed_kmph ?? updated.speed_kmh,
+          eta: updated.eta_formatted ?? updated.eta,
+          eta_minutes: updated.eta_minutes,
+          remaining_distance_km: updated.remaining_distance_km,
+          route_label: updated.route_label,
+          route_path_names: updated.route_path_names,
+          route_coordinates: updated.active_route_coordinates,
+          current_segment: updated.current_segment,
+        };
+      });
     }
 
     if (lastEvent.kind === 'alert' && lastEvent.data) {

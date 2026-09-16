@@ -125,7 +125,8 @@
       "notifications": "Hriattirna",
       "profile": "Profile",
       "regionalOps": "Tualchhung Thiltih",
-      "districtSuffix": "District"
+      "districtSuffix": "District",
+      "drivers": "Driver Hnathawh leh Himna"
     }
   },
   "roles": {
@@ -397,5 +398,19 @@
     "grantAccess": "System Role Thlanna",
     "auditLogs": "Audit Control Logs",
     "activeSessions": "Active Secure Sessions"
+  },
+  "driverOps": {
+    "title": "Driver Himna leh Zin Chhunzawmna",
+    "subtitle": "Driver enkawlna, tanpuina pek leh motor inhlan chhawnna him",
+    "refresh": "Tih thar",
+    "registerDriver": "Driver thar ziak lut",
+    "totalDrivers": "Driver zawng zawng",
+    "onTrip": "Zin mekte",
+    "openAssistance": "Tanpuina dilna",
+    "pendingHandovers": "Inhlan la nghak mek",
+    "tabDrivers": "Driver Hming Ziahna",
+    "tabAssistance": "Tanpuina Vantlang",
+    "tabHandover": "Motor Inhlan Chhawnna Him",
+    "searchDrivers": "Driver zawng rawh..."
   }
 }
