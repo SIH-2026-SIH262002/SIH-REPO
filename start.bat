@@ -6,6 +6,7 @@ set "ROOT=%~dp0"
 set "VENV_DIR=%ROOT%.venv"
 set "VENV_PY=%VENV_DIR%\Scripts\python.exe"
 set "BACKEND_DIR=%ROOT%backend"
+set "CORE_DIR=%ROOT%backend\core-service"
 set "AUTH_DIR=%ROOT%backend\auth-service"
 set "FRONTEND_DIR=%ROOT%apps\web-dashboard"
 
@@ -26,6 +27,28 @@ if errorlevel 1 (
     echo [ERROR] Node.js was not found on PATH. Install Node.js and try again.
     pause
     exit /b 1
+)
+
+where java >nul 2>&1
+if errorlevel 1 (
+    echo [WARN] Java was not found on PATH. Spring Boot core-service may not launch properly.
+)
+
+where mvn >nul 2>&1
+if errorlevel 1 (
+    echo [WARN] Maven [mvn] was not found on PATH. Spring Boot core-service may not launch properly.
+)
+
+REM Optional: Start Docker PostGIS if Docker is running and container is stopped
+where docker >nul 2>&1
+if not errorlevel 1 (
+    docker ps -q --filter "name=ner-postgis" 2>nul | findstr /r "." >nul 2>&1
+    if errorlevel 1 (
+        echo [Setup] Starting PostgreSQL/PostGIS database container...
+        pushd "%ROOT%docker"
+        docker compose up -d postgis >nul 2>&1
+        popd
+    )
 )
 
 if not exist "%VENV_PY%" (
@@ -71,12 +94,17 @@ if not exist "%FRONTEND_DIR%\node_modules" (
 )
 
 echo.
-echo [Start] Launching backend      -^> http://localhost:8000
+echo [Start] Launching backend       -^> http://localhost:8000
 REM --host 0.0.0.0 makes this reachable from phones on the same WiFi (not
 REM just this PC) -- required for testing the mobile app on a real device.
-start "NER LogiSense - Backend" cmd /k "cd /d "%BACKEND_DIR%" && "%VENV_PY%" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
+start "NER LogiSense - Backend (FastAPI)" cmd /k "cd /d "%BACKEND_DIR%" && "%VENV_PY%" -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000"
 
-echo [Start] Launching auth-service -^> http://localhost:3000
+echo [Start] Launching core-service   -^> http://localhost:8080
+REM Java Spring Boot Core Service: PostgreSQL/PostGIS persistence for
+REM DriverProfile, AssistanceRequest, TripHandover, Vehicle, Shipment, and SOS.
+start "NER LogiSense - Core Service (Spring Boot)" cmd /k "cd /d "%CORE_DIR%" && mvn spring-boot:run"
+
+echo [Start] Launching auth-service  -^> http://localhost:3000
 REM Identity/session/user-directory + Admin account lifecycle (provision,
 REM suspend, reactivate, deactivate, role/district change). This is the
 REM authoritative login backend for the Admin Console -- the FastAPI gateway
@@ -84,7 +112,7 @@ REM above owns the operational/simulation data (sensors, routes, SOS, etc.)
 REM and only carries a small in-memory demo/fallback login of its own.
 start "NER LogiSense - Auth Service" cmd /k "cd /d "%AUTH_DIR%" && npm run dev"
 
-echo [Start] Launching frontend     -^> http://localhost:5173
+echo [Start] Launching frontend      -^> http://localhost:5173
 start "NER LogiSense - Frontend" cmd /k "cd /d "%FRONTEND_DIR%" && npm run dev"
 
 echo [Start] Waiting for the frontend to come online...
@@ -109,10 +137,11 @@ echo ============================================
 echo   NER LogiSense is running
 echo     Frontend      : http://localhost:5173
 echo     Backend       : http://localhost:8000/docs
+echo     Core Service  : http://localhost:8080
 echo     Auth Service  : http://localhost:3000
 echo.
-echo   Close the three new terminal windows
-echo   (Backend / Auth Service / Frontend) to stop the servers.
+echo   Close the four new terminal windows
+echo   (Backend / Core Service / Auth Service / Frontend) to stop the servers.
 echo ============================================
 echo.
 pause

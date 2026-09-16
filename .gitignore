@@ -13,3 +13,4 @@ backend/*.db
 .expo/
 *.apk
 docker/graphhopper/data/
+start_output.txt
