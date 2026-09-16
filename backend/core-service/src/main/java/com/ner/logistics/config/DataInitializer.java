@@ -28,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
     private final ShipmentRepository shipmentRepository;
     private final CorridorRepository corridorRepository;
     private final PasswordEncoder passwordEncoder;
+    private final com.ner.logistics.driver.DriverProfileRepository driverProfileRepository;
 
     @Override
     public void run(String... args) {
@@ -124,6 +125,32 @@ public class DataInitializer implements CommandLineRunner {
                     Corridor.builder().name("Shillong -> Silchar National Highway").code("COR-NH44").startPoint("Shillong").endPoint("Silchar").lengthKm(215.0).accessibilityScorePct(74.0).status("DEGRADED").build()
             );
             corridorRepository.saveAll(initialCorridors);
+        }
+
+        // 6. Seed Driver Profile for existing authenticated Convoy Driver
+        if (driverProfileRepository.count() == 0) {
+            userRepository.findByUsername("driver").ifPresent(driverUser -> {
+                Long shipmentId = shipmentRepository.findByVehicleCode("NER-07")
+                        .stream().findFirst().map(Shipment::getId).orElse(null);
+
+                com.ner.logistics.driver.DriverProfile profile = com.ner.logistics.driver.DriverProfile.builder()
+                        .user(driverUser)
+                        .licenseNumber("AS-01-2022-0049281")
+                        .licenseCategory("TRANS_HEAVY")
+                        .licenseExpiry(java.time.LocalDate.now().plusYears(3))
+                        .operationalStatus("ON_TRIP")
+                        .fitnessStatus("FIT")
+                        .baseDepot("Guwahati Central Hub")
+                        .currentLatitude(25.1500)
+                        .currentLongitude(92.7000)
+                        .assignedVehicleCode("NER-07")
+                        .activeShipmentId(shipmentId)
+                        .emergencyContactName("Sunita Gogoi")
+                        .emergencyContactPhone("+91 9435012345")
+                        .build();
+
+                driverProfileRepository.save(profile);
+            });
         }
     }
 }

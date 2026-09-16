@@ -3,8 +3,17 @@ __pycache__/
 *.pyc
 node_modules/
 dist/
+.env
+.env.*
+!.env.example
+!*.env.example
+.vscode/
 backend/.env
 backend/uploads/*
 !backend/uploads/.gitkeep
 backend/*.db
 .DS_Store
+.expo/
+*.apk
+docker/graphhopper/data/
+start_output.txt

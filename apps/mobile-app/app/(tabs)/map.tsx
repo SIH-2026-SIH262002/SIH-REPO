@@ -7,7 +7,8 @@ import { sensorsApi } from '../../src/api/sensors';
 import { vehiclesApi } from '../../src/api/vehicles';
 import { incidentsApi } from '../../src/api/incidents';
 import { SensorNode, Vehicle, IncidentReport } from '../../src/types';
-import { Colors, Spacing } from '../../src/constants/theme';
+import { Spacing } from '../../src/constants/theme';
+import { useTheme } from '../../src/context/ThemeContext';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -17,6 +18,8 @@ export default function MapScreen() {
   const [incidents, setIncidents] = useState<IncidentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const { colors } = useTheme();
 
   const loadMapData = async () => {
     try {
@@ -44,7 +47,7 @@ export default function MapScreen() {
   }, []);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
         title="Live Map"
         subtitle="Geospatial Risk, Vehicle Tracking & Incidents"
@@ -53,16 +56,18 @@ export default function MapScreen() {
       />
 
       {errorMsg ? (
-        <View style={styles.errorBanner}>
-          <Ionicons name="alert-circle-outline" size={18} color={Colors.sosRed} />
-          <Text style={styles.errorText}>{errorMsg}</Text>
+        <View style={[styles.errorBanner, { backgroundColor: `${colors.sosRed}20` }]}>
+          <Ionicons name="alert-circle-outline" size={18} color={colors.sosRed} />
+          <Text style={[styles.errorText, { color: colors.sosRed }]}>{errorMsg}</Text>
         </View>
       ) : null}
 
       {loading ? (
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loaderText}>Loading Geospatial Sensor & Fleet Data...</Text>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.loaderText, { color: colors.textMuted }]}>
+            Loading Geospatial Sensor & Fleet Data...
+          </Text>
         </View>
       ) : (
         <InteractiveMap
@@ -78,7 +83,6 @@ export default function MapScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   loaderContainer: {
     flex: 1,
@@ -87,19 +91,16 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
   },
   loaderText: {
-    color: Colors.textMuted,
     fontSize: 13,
     marginTop: 12,
   },
   errorBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${Colors.sosRed}20`,
     padding: 10,
     gap: 8,
   },
   errorText: {
-    color: Colors.sosRed,
     fontSize: 12,
     flex: 1,
   },

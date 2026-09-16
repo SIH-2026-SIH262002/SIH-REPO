@@ -1,22 +1,23 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors } from '../../src/constants/theme';
 import { useOffline } from '../../src/context/OfflineContext';
+import { useTheme } from '../../src/context/ThemeContext';
 import { View, Text, StyleSheet } from 'react-native';
 
 export default function TabsLayout() {
   const { pendingCount } = useOffline();
+  const { colors } = useTheme();
 
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textMuted,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textMuted,
         tabBarStyle: {
-          backgroundColor: Colors.card,
-          borderTopColor: Colors.cardBorder,
+          backgroundColor: colors.tabBarBg,
+          borderTopColor: colors.tabBarBorder,
           height: 60,
           paddingBottom: 8,
           paddingTop: 8,
@@ -80,7 +81,7 @@ export default function TabsLayout() {
             <View>
               <Ionicons name="camera-outline" size={size - 2} color={color} />
               {pendingCount > 0 && (
-                <View style={styles.badge}>
+                <View style={[styles.badge, { backgroundColor: colors.warning }]}>
                   <Text style={styles.badgeText}>{pendingCount}</Text>
                 </View>
               )}
@@ -93,7 +94,16 @@ export default function TabsLayout() {
         options={{
           title: 'SOS',
           tabBarIcon: ({ size }) => (
-            <Ionicons name="alert-circle" size={size + 2} color={Colors.sosRed} />
+            <Ionicons name="alert-circle" size={size + 2} color={colors.sosRed} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="assistance"
+        options={{
+          title: 'Assistance',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="shield-checkmark-outline" size={size - 2} color={color} />
           ),
         }}
       />
@@ -115,7 +125,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -8,
-    backgroundColor: Colors.warning,
     borderRadius: 8,
     width: 16,
     height: 16,

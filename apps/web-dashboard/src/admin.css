@@ -1,0 +1,84 @@
+/*
+ * NER LogiSense — Admin Console design tokens.
+ * Scoped under .admin-console so it is IMMUNE to the app-wide dark/light
+ * theme toggle (html.dark) -- the Admin Console is light-only, always,
+ * per the government-operational design mandate. Institutional, restrained,
+ * accessible: no gradients, no glassmorphism, no glow, minimal radius.
+ */
+
+.admin-console,
+.logistics-console {
+  --adm-bg: #f4f6f8;
+  --adm-surface: #ffffff;
+  --adm-raised: #fafbfc;
+  --adm-border: #d5dbe1;
+  --adm-border-strong: #b8c1cb;
+
+  --adm-ink: #16202c;
+  --adm-ink-2: #46535f;
+  --adm-ink-3: #66727d;
+
+  --adm-primary: #17457a;
+  --adm-primary-dark: #0f3059;
+  --adm-primary-wash: #eef3f9;
+
+  --adm-accent: #9a6a12;
+
+  --adm-healthy: #1c6b45;
+  --adm-healthy-bg: #e8f4ee;
+  --adm-warning: #8a5a08;
+  --adm-warning-bg: #fdf3e0;
+  --adm-critical: #a4262c;
+  --adm-critical-bg: #fbeaea;
+  --adm-neutral: #5a6672;
+  --adm-neutral-bg: #eef0f2;
+
+  --adm-shadow-card: 0 1px 2px rgba(22, 32, 44, 0.06);
+  --adm-shadow-modal: 0 8px 24px rgba(22, 32, 44, 0.14);
+  --adm-radius: 4px;
+
+  background: var(--adm-bg);
+  color: var(--adm-ink);
+  min-height: 100vh;
+  font-variant-numeric: tabular-nums;
+  color-scheme: light;
+}
+
+.admin-console *,
+.logistics-console * {
+  box-sizing: border-box;
+}
+
+.admin-console table,
+.logistics-console table {
+  font-variant-numeric: tabular-nums;
+  border-collapse: collapse;
+}
+
+.admin-console :focus-visible,
+.logistics-console :focus-visible {
+  outline: 2px solid var(--adm-primary);
+  outline-offset: 2px;
+}
+
+.admin-console ::-webkit-scrollbar,
+.logistics-console ::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.admin-console ::-webkit-scrollbar-track,
+.logistics-console ::-webkit-scrollbar-track {
+  background: var(--adm-raised);
+}
+.admin-console ::-webkit-scrollbar-thumb,
+.logistics-console ::-webkit-scrollbar-thumb {
+  background: var(--adm-border-strong);
+  border-radius: 4px;
+}
+
+@media (max-width: 767px) {
+  .admin-console,
+  .logistics-console {
+    --adm-sidebar-width: 0px;
+  }
+}

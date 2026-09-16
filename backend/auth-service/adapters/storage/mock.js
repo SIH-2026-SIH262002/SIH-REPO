@@ -51,6 +51,42 @@ class MockStorageAdapter {
         return true;
     }
 
+    async updateUserMetadata(userId, metadata) {
+        const user = this.users.get(userId);
+        if (!user) throw new Error('User not found');
+
+        user.metadata = { ...(user.metadata || {}), ...metadata };
+        user.updated_at = new Date();
+
+        this.users.set(user.id, user);
+        this.users.set(user.identifier, user);
+
+        return user;
+    }
+
+    async setActive(userId, isActive) {
+        const user = this.users.get(userId);
+        if (!user) throw new Error('User not found');
+
+        user.is_active = isActive;
+        user.updated_at = new Date();
+
+        this.users.set(user.id, user);
+        this.users.set(user.identifier, user);
+
+        return true;
+    }
+
+    async getAllUsers() {
+        // createUser() stores each user under both its `id` and `identifier`
+        // keys -- keep only the id-keyed entry so each account is returned once.
+        const result = [];
+        for (const [key, user] of this.users.entries()) {
+            if (key === user.id) result.push({ ...user });
+        }
+        return result;
+    }
+
     // SESSION CONTRACT
     async createSession(sessionData) {
         const session = {

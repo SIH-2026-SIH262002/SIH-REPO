@@ -11,7 +11,10 @@ services:
       POSTGRES_USER: sih_admin
       POSTGRES_PASSWORD: sih_secure_password_2026
     ports:
-      - "5432:5432"
+      # Host port 5433, not 5432 -- this machine already has a native
+      # PostgreSQL 18 Windows service bound to 5432, unrelated to this
+      # project; remapping avoids silently colliding with it.
+      - "5433:5432"
     volumes:
       - postgis_data:/var/lib/postgresql/data
       - ./postgis/init-postgis.sql:/docker-entrypoint-initdb.d/init-postgis.sql
@@ -30,6 +33,7 @@ services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: ner-zookeeper
+    restart: always
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -37,6 +41,7 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.5.0
     container_name: ner-kafka
+    restart: always
     depends_on:
       - zookeeper
     ports:
@@ -62,13 +67,16 @@ services:
 
   # GraphHopper Routing Engine (OSM + Elevation/Hazard Constraints)
   graphhopper:
-    image: israelh/graphhopper:latest
+    image: israelhikingmap/graphhopper:latest
     container_name: ner-graphhopper
     restart: always
     ports:
       - "8989:8989"
     environment:
       JAVA_OPTS: "-Xmx2g -Xms2g"
+    volumes:
+      - ./graphhopper/data:/data
+    command: ["-i", "/data/north-eastern-zone-latest.osm.pbf", "-c", "config-example.yml"]
 
 volumes:
   postgis_data:

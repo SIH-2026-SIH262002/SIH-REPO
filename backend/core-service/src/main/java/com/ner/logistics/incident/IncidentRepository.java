@@ -7,7 +7,7 @@ import java.util.List;
 
 public interface IncidentRepository extends JpaRepository<Incident, Long> {
     List<Incident> findByStatus(String status);
-    List<Incident> findBySeverityAndStatus(String severity, String status);
+    List<Incident> findByReportedSeverityAndStatus(String reportedSeverity, String status);
     java.util.Optional<Incident> findByClientGeneratedId(String clientGeneratedId);
 
     @Query(value = "SELECT * FROM incidents i WHERE ST_DWithin(i.location, ST_SetSRID(ST_MakePoint(:lng, :lat), 4326), :distanceMeters)", nativeQuery = true)
