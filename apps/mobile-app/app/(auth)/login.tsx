@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../../src/context/AuthContext';
-import { Colors, Spacing, BorderRadius } from '../../src/constants/theme';
+import { useTheme } from '../../src/context/ThemeContext';
+import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -25,6 +26,7 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
 
   const { login } = useAuth();
+  const { colors, isDark, toggleTheme } = useTheme();
   const router = useRouter();
 
   const handleLogin = async () => {
@@ -64,45 +66,84 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
         <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
+          {/* Quick theme toggle top corner */}
+          <View style={styles.topBar}>
+            <TouchableOpacity
+              style={[
+                styles.themeIconBtn,
+                { backgroundColor: colors.card, borderColor: colors.cardBorder },
+              ]}
+              onPress={toggleTheme}
+            >
+              <Ionicons
+                name={isDark ? 'sunny-outline' : 'moon-outline'}
+                size={20}
+                color={isDark ? '#f59e0b' : colors.primary}
+              />
+            </TouchableOpacity>
+          </View>
+
           {/* Header Branding */}
           <View style={styles.brandContainer}>
-            <View style={styles.logoBadge}>
-              <Ionicons name="shield-checkmark" size={36} color={Colors.primary} />
+            <View
+              style={[
+                styles.logoBadge,
+                { backgroundColor: `${colors.primary}20`, borderColor: `${colors.primary}40` },
+              ]}
+            >
+              <Ionicons name="shield-checkmark" size={36} color={colors.primary} />
             </View>
-            <Text style={styles.brandTitle}>NER LogiSense</Text>
-            <Text style={styles.brandSubtitle}>
+            <Text style={[styles.brandTitle, { color: colors.text }]}>NER LogiSense</Text>
+            <Text style={[styles.brandSubtitle, { color: colors.textMuted }]}>
               Smart Logistics & Landslide Risk Mobile Command
             </Text>
           </View>
 
           {/* Form Card */}
-          <View style={styles.formCard}>
-            <Text style={styles.formHeader}>Sign In to Account</Text>
+          <View
+            style={[
+              styles.formCard,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            ]}
+          >
+            <Text style={[styles.formHeader, { color: colors.text }]}>Sign In to Account</Text>
 
             {errorMsg ? (
-              <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={18} color={Colors.sosRed} />
-                <Text style={styles.errorText}>{errorMsg}</Text>
+              <View
+                style={[
+                  styles.errorBox,
+                  { backgroundColor: `${colors.sosRed}20`, borderColor: `${colors.sosRed}40` },
+                ]}
+              >
+                <Ionicons name="alert-circle" size={18} color={colors.sosRed} />
+                <Text style={[styles.errorText, { color: colors.sosRed }]}>{errorMsg}</Text>
               </View>
             ) : null}
 
             {/* Identifier Input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email / Phone / Username</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="person-outline" size={18} color={Colors.textMuted} style={styles.inputIcon} />
+              <Text style={[styles.label, { color: colors.textMuted }]}>
+                Email / Phone / Username
+              </Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder },
+                ]}
+              >
+                <Ionicons name="person-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text }]}
                   value={identifier}
                   onChangeText={setIdentifier}
                   placeholder="e.g. officer@nerlogisense.gov.in"
-                  placeholderTextColor={Colors.textSubtle}
+                  placeholderTextColor={colors.textSubtle}
                   autoCapitalize="none"
                   keyboardType="email-address"
                 />
@@ -111,22 +152,27 @@ export default function LoginScreen() {
 
             {/* Password Input */}
             <View style={styles.inputGroup}>
-              <Text style={styles.label}>Password</Text>
-              <View style={styles.inputWrapper}>
-                <Ionicons name="lock-closed-outline" size={18} color={Colors.textMuted} style={styles.inputIcon} />
+              <Text style={[styles.label, { color: colors.textMuted }]}>Password</Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder },
+                ]}
+              >
+                <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} style={styles.inputIcon} />
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { color: colors.text }]}
                   value={password}
                   onChangeText={setPassword}
                   placeholder="••••••••"
-                  placeholderTextColor={Colors.textSubtle}
+                  placeholderTextColor={colors.textSubtle}
                   secureTextEntry={!showPassword}
                 />
                 <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
                   <Ionicons
                     name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                     size={18}
-                    color={Colors.textMuted}
+                    color={colors.textMuted}
                   />
                 </TouchableOpacity>
               </View>
@@ -134,7 +180,11 @@ export default function LoginScreen() {
 
             {/* Submit Button */}
             <TouchableOpacity
-              style={[styles.submitButton, loading && styles.buttonDisabled]}
+              style={[
+                styles.submitButton,
+                { backgroundColor: colors.primary },
+                loading && styles.buttonDisabled,
+              ]}
               onPress={handleLogin}
               disabled={loading}
               activeOpacity={0.8}
@@ -150,17 +200,37 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             {/* Quick Demo Credentials */}
-            <View style={styles.demoSection}>
-              <Text style={styles.demoTitle}>DEMO QUICK LOGINS:</Text>
+            <View style={[styles.demoSection, { borderTopColor: colors.cardBorder }]}>
+              <Text style={[styles.demoTitle, { color: colors.textSubtle }]}>
+                DEMO QUICK LOGINS:
+              </Text>
               <View style={styles.demoButtonsRow}>
-                <TouchableOpacity style={styles.demoChip} onPress={() => fillDemo('officer')}>
-                  <Text style={styles.demoChipText}>Field Officer</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.demoChip,
+                    { backgroundColor: colors.background, borderColor: colors.cardBorder },
+                  ]}
+                  onPress={() => fillDemo('officer')}
+                >
+                  <Text style={[styles.demoChipText, { color: colors.primary }]}>Field Officer</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.demoChip} onPress={() => fillDemo('driver')}>
-                  <Text style={styles.demoChipText}>Driver</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.demoChip,
+                    { backgroundColor: colors.background, borderColor: colors.cardBorder },
+                  ]}
+                  onPress={() => fillDemo('driver')}
+                >
+                  <Text style={[styles.demoChipText, { color: colors.primary }]}>Driver</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.demoChip} onPress={() => fillDemo('admin')}>
-                  <Text style={styles.demoChipText}>Admin</Text>
+                <TouchableOpacity
+                  style={[
+                    styles.demoChip,
+                    { backgroundColor: colors.background, borderColor: colors.cardBorder },
+                  ]}
+                  onPress={() => fillDemo('admin')}
+                >
+                  <Text style={[styles.demoChipText, { color: colors.primary }]}>Admin</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -174,7 +244,6 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   flex: {
     flex: 1,
@@ -184,6 +253,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: '100%',
   },
+  topBar: {
+    alignItems: 'flex-end',
+    marginBottom: Spacing.sm,
+  },
+  themeIconBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: BorderRadius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
   brandContainer: {
     alignItems: 'center',
     marginBottom: Spacing.xl,
@@ -192,51 +273,41 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: BorderRadius.xl,
-    backgroundColor: `${Colors.primary}20`,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.md,
     borderWidth: 1,
-    borderColor: `${Colors.primary}40`,
   },
   brandTitle: {
     fontSize: 28,
     fontWeight: '800',
-    color: Colors.text,
     letterSpacing: -0.5,
   },
   brandSubtitle: {
     fontSize: 13,
-    color: Colors.textMuted,
     marginTop: 4,
     textAlign: 'center',
   },
   formCard: {
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   formHeader: {
     fontSize: 18,
     fontWeight: '700',
-    color: Colors.text,
     marginBottom: Spacing.md,
   },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${Colors.sosRed}20`,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
     gap: Spacing.sm,
     borderWidth: 1,
-    borderColor: `${Colors.sosRed}40`,
   },
   errorText: {
-    color: Colors.sosRed,
     fontSize: 13,
     flex: 1,
     fontWeight: '600',
@@ -247,7 +318,6 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.textMuted,
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
@@ -255,10 +325,8 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.inputBg,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
     paddingHorizontal: Spacing.md,
   },
   inputIcon: {
@@ -267,14 +335,12 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     height: 48,
-    color: Colors.text,
     fontSize: 14,
   },
   eyeIcon: {
     padding: 6,
   },
   submitButton: {
-    backgroundColor: Colors.primary,
     borderRadius: BorderRadius.md,
     height: 50,
     flexDirection: 'row',
@@ -294,13 +360,11 @@ const styles = StyleSheet.create({
   demoSection: {
     marginTop: Spacing.lg,
     borderTopWidth: 1,
-    borderTopColor: Colors.cardBorder,
     paddingTop: Spacing.md,
   },
   demoTitle: {
     fontSize: 10,
     fontWeight: '800',
-    color: Colors.textSubtle,
     letterSpacing: 1,
     marginBottom: 8,
   },
@@ -310,16 +374,13 @@ const styles = StyleSheet.create({
   },
   demoChip: {
     flex: 1,
-    backgroundColor: Colors.background,
     paddingVertical: 8,
     borderRadius: BorderRadius.sm,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   demoChipText: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.primary,
   },
 });

@@ -14,7 +14,8 @@ import { Card } from '../../src/components/Card';
 import { RiskBadge } from '../../src/components/RiskBadge';
 import { riskApi } from '../../src/api/risk';
 import { RiskPredictionResult, RiskCategory } from '../../src/types';
-import { Colors, Spacing, BorderRadius, RiskColors } from '../../src/constants/theme';
+import { Spacing, BorderRadius, RiskColors } from '../../src/constants/theme';
+import { useTheme } from '../../src/context/ThemeContext';
 import { getApiErrorMessage } from '../../src/api/client';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -31,6 +32,8 @@ export default function RiskScreen() {
   const [featureImportances, setFeatureImportances] = useState<Record<string, number>>({});
   const [calculating, setCalculating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+
+  const { colors } = useTheme();
 
   const fetchFeatureImportance = async () => {
     try {
@@ -67,7 +70,7 @@ export default function RiskScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
       <Header
         title="Landslide Risk AI"
         subtitle="Machine Learning Predictive Analysis"
@@ -77,53 +80,53 @@ export default function RiskScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {errorMsg ? (
-          <View style={styles.errorBox}>
-            <Ionicons name="alert-circle" size={18} color={Colors.sosRed} />
-            <Text style={styles.errorText}>{errorMsg}</Text>
+          <View style={[styles.errorBox, { backgroundColor: `${colors.sosRed}20` }]}>
+            <Ionicons name="alert-circle" size={18} color={colors.sosRed} />
+            <Text style={[styles.errorText, { color: colors.sosRed }]}>{errorMsg}</Text>
           </View>
         ) : null}
 
         {/* Prediction Result Gauge Card */}
         {prediction && (
-          <Card style={styles.resultCard}>
+          <Card style={{ backgroundColor: colors.card, borderColor: colors.cardBorder }}>
             <View style={styles.resultHeader}>
-              <Text style={styles.resultTitle}>PREDICTED LANDSLIDE RISK</Text>
+              <Text style={[styles.resultTitle, { color: colors.textSubtle }]}>PREDICTED LANDSLIDE RISK</Text>
               <RiskBadge category={prediction.category} size="lg" />
             </View>
 
             <View style={styles.scoreRow}>
-              <Text style={styles.scoreNumber}>{prediction.risk_score.toFixed(0)}</Text>
-              <Text style={styles.scoreMax}>/ 100</Text>
+              <Text style={[styles.scoreNumber, { color: colors.text }]}>{prediction.risk_score.toFixed(0)}</Text>
+              <Text style={[styles.scoreMax, { color: colors.textMuted }]}>/ 100</Text>
             </View>
 
-            <View style={styles.meterBarBg}>
+            <View style={[styles.meterBarBg, { backgroundColor: colors.inputBg }]}>
               <View
                 style={[
                   styles.meterBarFill,
                   {
                     width: `${Math.min(prediction.risk_score, 100)}%`,
-                    backgroundColor: RiskColors[prediction.category as RiskCategory] || Colors.primary,
+                    backgroundColor: RiskColors[prediction.category as RiskCategory] || colors.primary,
                   },
                 ]}
               />
             </View>
 
             {/* Contributing Factors */}
-            <Text style={styles.subSectionTitle}>CONTRIBUTING SENSOR FACTORS</Text>
+            <Text style={[styles.subSectionTitle, { color: colors.textMuted }]}>CONTRIBUTING SENSOR FACTORS</Text>
             {prediction.contributing_factors?.map((fact, idx) => (
               <View key={idx} style={styles.factorRow}>
-                <Ionicons name="hardware-chip-outline" size={14} color={Colors.primary} />
-                <Text style={styles.factorName}>{fact.factor}</Text>
-                <Text style={styles.factorImpact}>{fact.impact}</Text>
+                <Ionicons name="hardware-chip-outline" size={14} color={colors.primary} />
+                <Text style={[styles.factorName, { color: colors.text }]}>{fact.factor}</Text>
+                <Text style={[styles.factorImpact, { color: colors.primary }]}>{fact.impact}</Text>
               </View>
             ))}
 
             {/* AI Recommendations */}
             {prediction.recommendations?.length > 0 && (
-              <View style={styles.recBox}>
-                <Text style={styles.recTitle}>AI SAFETY RECOMMENDATIONS:</Text>
+              <View style={[styles.recBox, { backgroundColor: colors.background, borderColor: colors.cardBorder }]}>
+                <Text style={[styles.recTitle, { color: colors.warning }]}>AI SAFETY RECOMMENDATIONS:</Text>
                 {prediction.recommendations.map((rec, i) => (
-                  <Text key={i} style={styles.recText}>• {rec}</Text>
+                  <Text key={i} style={[styles.recText, { color: colors.textMuted }]}>• {rec}</Text>
                 ))}
               </View>
             )}
@@ -134,9 +137,12 @@ export default function RiskScreen() {
         <Card title="Simulate Risk Parameters" icon="calculator">
           <View style={styles.formGrid}>
             <View style={styles.inputCol}>
-              <Text style={styles.inputLabel}>24h Rain (mm)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>24h Rain (mm)</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text },
+                ]}
                 value={rainfall24h}
                 onChangeText={setRainfall24h}
                 keyboardType="numeric"
@@ -144,9 +150,12 @@ export default function RiskScreen() {
             </View>
 
             <View style={styles.inputCol}>
-              <Text style={styles.inputLabel}>72h Rain (mm)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>72h Rain (mm)</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text },
+                ]}
                 value={rainfall72h}
                 onChangeText={setRainfall72h}
                 keyboardType="numeric"
@@ -154,9 +163,12 @@ export default function RiskScreen() {
             </View>
 
             <View style={styles.inputCol}>
-              <Text style={styles.inputLabel}>Soil Moisture (%)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Soil Moisture (%)</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text },
+                ]}
                 value={soilMoisture}
                 onChangeText={setSoilMoisture}
                 keyboardType="numeric"
@@ -164,9 +176,12 @@ export default function RiskScreen() {
             </View>
 
             <View style={styles.inputCol}>
-              <Text style={styles.inputLabel}>Porosity Index</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Porosity Index</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text },
+                ]}
                 value={soilPorosity}
                 onChangeText={setSoilPorosity}
                 keyboardType="numeric"
@@ -174,9 +189,12 @@ export default function RiskScreen() {
             </View>
 
             <View style={styles.inputCol}>
-              <Text style={styles.inputLabel}>Vibration (0-10)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Vibration (0-10)</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text },
+                ]}
                 value={vibration}
                 onChangeText={setVibration}
                 keyboardType="numeric"
@@ -184,9 +202,12 @@ export default function RiskScreen() {
             </View>
 
             <View style={styles.inputCol}>
-              <Text style={styles.inputLabel}>Slope Angle (°)</Text>
+              <Text style={[styles.inputLabel, { color: colors.textMuted }]}>Slope Angle (°)</Text>
               <TextInput
-                style={styles.input}
+                style={[
+                  styles.input,
+                  { backgroundColor: colors.inputBg, borderColor: colors.cardBorder, color: colors.text },
+                ]}
                 value={slopeAngle}
                 onChangeText={setSlopeAngle}
                 keyboardType="numeric"
@@ -195,7 +216,7 @@ export default function RiskScreen() {
           </View>
 
           <TouchableOpacity
-            style={[styles.calcBtn, calculating && styles.btnDisabled]}
+            style={[styles.calcBtn, { backgroundColor: colors.primary }, calculating && styles.btnDisabled]}
             onPress={handlePredict}
             disabled={calculating}
           >
@@ -218,16 +239,21 @@ export default function RiskScreen() {
               .slice(0, 6)
               .map(([feature, weight], idx) => (
                 <View key={idx} style={styles.importanceRow}>
-                  <Text style={styles.featureName}>{feature.replace(/_/g, ' ')}</Text>
-                  <View style={styles.importanceBarBg}>
+                  <Text style={[styles.featureName, { color: colors.text }]}>{feature.replace(/_/g, ' ')}</Text>
+                  <View style={[styles.importanceBarBg, { backgroundColor: colors.inputBg }]}>
                     <View
                       style={[
                         styles.importanceBarFill,
-                        { width: `${Math.min(weight * 100 * 2.5, 100)}%` },
+                        {
+                          width: `${Math.min(weight * 100 * 2.5, 100)}%`,
+                          backgroundColor: colors.primary,
+                        },
                       ]}
                     />
                   </View>
-                  <Text style={styles.importanceVal}>{(weight * 100).toFixed(1)}%</Text>
+                  <Text style={[styles.importanceVal, { color: colors.textMuted }]}>
+                    {(weight * 100).toFixed(1)}%
+                  </Text>
                 </View>
               ))}
           </Card>
@@ -240,7 +266,6 @@ export default function RiskScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
   },
   scrollContent: {
     padding: Spacing.md,
@@ -248,18 +273,13 @@ const styles = StyleSheet.create({
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: `${Colors.sosRed}20`,
     padding: Spacing.md,
     borderRadius: BorderRadius.md,
     marginBottom: Spacing.md,
     gap: 8,
   },
   errorText: {
-    color: Colors.sosRed,
     fontSize: 13,
-  },
-  resultCard: {
-    backgroundColor: Colors.card,
   },
   resultHeader: {
     flexDirection: 'row',
@@ -269,7 +289,6 @@ const styles = StyleSheet.create({
   resultTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.textSubtle,
     letterSpacing: 1,
   },
   scoreRow: {
@@ -280,16 +299,13 @@ const styles = StyleSheet.create({
   scoreNumber: {
     fontSize: 48,
     fontWeight: '900',
-    color: Colors.text,
   },
   scoreMax: {
     fontSize: 18,
-    color: Colors.textMuted,
     marginLeft: 6,
   },
   meterBarBg: {
     height: 8,
-    backgroundColor: Colors.inputBg,
     borderRadius: 4,
     overflow: 'hidden',
     marginBottom: Spacing.md,
@@ -301,7 +317,6 @@ const styles = StyleSheet.create({
   subSectionTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.textMuted,
     letterSpacing: 0.5,
     marginBottom: 8,
   },
@@ -313,31 +328,25 @@ const styles = StyleSheet.create({
   },
   factorName: {
     fontSize: 13,
-    color: Colors.text,
     flex: 1,
   },
   factorImpact: {
     fontSize: 12,
     fontWeight: '700',
-    color: Colors.primary,
   },
   recBox: {
     marginTop: Spacing.md,
     padding: Spacing.md,
-    backgroundColor: Colors.background,
     borderRadius: BorderRadius.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
   },
   recTitle: {
     fontSize: 11,
     fontWeight: '800',
-    color: Colors.warning,
     marginBottom: 6,
   },
   recText: {
     fontSize: 12,
-    color: Colors.textMuted,
     marginTop: 2,
   },
   formGrid: {
@@ -351,21 +360,16 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textMuted,
     marginBottom: 4,
   },
   input: {
-    backgroundColor: Colors.inputBg,
     borderRadius: BorderRadius.sm,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
     height: 40,
     paddingHorizontal: 10,
-    color: Colors.text,
     fontSize: 13,
   },
   calcBtn: {
-    backgroundColor: Colors.primary,
     height: 44,
     borderRadius: BorderRadius.md,
     flexDirection: 'row',
@@ -390,26 +394,22 @@ const styles = StyleSheet.create({
   },
   featureName: {
     fontSize: 12,
-    color: Colors.text,
     width: 130,
     textTransform: 'capitalize',
   },
   importanceBarBg: {
     flex: 1,
     height: 6,
-    backgroundColor: Colors.inputBg,
     borderRadius: 3,
     overflow: 'hidden',
   },
   importanceBarFill: {
     height: '100%',
-    backgroundColor: Colors.primary,
     borderRadius: 3,
   },
   importanceVal: {
     fontSize: 11,
     fontWeight: '700',
-    color: Colors.textMuted,
     width: 40,
     textAlign: 'right',
   },

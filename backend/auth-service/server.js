@@ -3,6 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 const Auth = require('./index');
 const SqliteStorageAdapter = require('./adapters/storage/sqlite');
+const identityEngine = require('./core/identity');
 
 const app = express();
 
@@ -77,7 +78,79 @@ authSystem.onPasswordResetRequested(({ identifier, rawToken, expiresAt }) => {
 
 app.use('/auth', authSystem.router);
 
-app.listen(PORT, () => {
-    console.log(`Auth Engine server running on http://localhost:${PORT}`);
-    console.log('SQLite Database Storage Adapter is active.');
-});
+// Zero-setup demo bootstrap: a closed-provisioning system has no
+// self-registration, so *something* has to seed the very first Administrator.
+// Mirrors the FastAPI gateway's built-in demo accounts (same identifiers/
+// password/roles) so either backend gives the same out-of-the-box login.
+// Only runs when no ADMIN exists yet -- never touches a real deployment that
+// has already provisioned its own accounts.
+async function seedDemoAccountsIfEmpty() {
+    const existing = await identityEngine.getAllUsers();
+    if (existing.some((u) => (u.metadata || {}).role === 'ADMIN')) return;
+
+    const demoAccounts = [
+        {
+            identifier: 'admin@nerlogisense.gov.in',
+            password: 'password123',
+            metadata: {
+                fullName: 'Dr. S. Roy', email: 'admin@nerlogisense.gov.in',
+                phone: '+919876543212', role: 'ADMIN', district: 'East Khasi Hills',
+                organization: 'NER LogiSense Command Center', accountStatus: 'ACTIVE'
+            }
+        },
+        {
+            identifier: 'officer@nerlogisense.gov.in',
+            password: 'password123',
+            metadata: {
+                fullName: 'Rajesh Kumar', email: 'officer@nerlogisense.gov.in',
+                phone: '+919876543210', role: 'FIELD_OFFICER', district: 'East Khasi Hills',
+                organization: 'Meghalaya Disaster Management Authority', accountStatus: 'ACTIVE'
+            }
+        },
+        {
+            identifier: 'driver@nerlogisense.gov.in',
+            password: 'password123',
+            metadata: {
+                fullName: 'Amit Sharma', email: 'driver@nerlogisense.gov.in',
+                phone: '+919876543211', role: 'DRIVER', district: 'Kamrup Metro',
+                organization: 'NER Logistics Fleet', accountStatus: 'ACTIVE'
+            }
+        },
+        {
+            identifier: 'emergency@nerlogisense.gov.in',
+            password: 'password123',
+            metadata: {
+                fullName: 'Vikram Das', email: 'emergency@nerlogisense.gov.in',
+                phone: '+919876543214', role: 'EMERGENCY_OPERATOR', district: 'Cachar',
+                organization: 'Assam State Disaster Management Authority', accountStatus: 'ACTIVE'
+            }
+        },
+        {
+            identifier: 'logistics@nerlogisense.gov.in',
+            password: 'password123',
+            metadata: {
+                fullName: 'Priya Sharma', email: 'logistics@nerlogisense.gov.in',
+                phone: '+919876543213', role: 'LOGISTICS_OPERATOR', district: 'Kamrup Metro',
+                organization: 'NER Logistics Command Center', accountStatus: 'ACTIVE'
+            }
+        }
+    ];
+
+    for (const account of demoAccounts) {
+        try {
+            await identityEngine.createUser(account);
+            console.log(`[Seed] Provisioned demo account: ${account.identifier} (${account.metadata.role})`);
+        } catch (err) {
+            if (err.message !== 'IDENTIFIER_IN_USE') throw err;
+        }
+    }
+}
+
+seedDemoAccountsIfEmpty()
+    .catch((err) => console.error('[Seed] Failed to seed demo accounts:', err))
+    .finally(() => {
+        app.listen(PORT, () => {
+            console.log(`Auth Engine server running on http://localhost:${PORT}`);
+            console.log('SQLite Database Storage Adapter is active.');
+        });
+    });

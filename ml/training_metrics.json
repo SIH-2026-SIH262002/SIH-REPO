@@ -1,50 +1,98 @@
 {
-  "regressor_mae": 5.0332549764963455,
-  "regressor_r2": 0.8505718681838518,
-  "classifier_roc_auc": 0.9433408516535775,
+  "model_name": "XGBoost + LightGBM Ensemble",
+  "dataset": "NER_SIH26002_320K_same_parameters.csv",
+  "n_raw_rows": 320000,
+  "n_clean_rows": 320000,
+  "rows_removed": 0,
+  "regressor_mae": 1.457,
+  "regressor_r2": 0.9735,
+  "classifier_roc_auc": 0.933,
+  "classifier_accuracy": 0.8579,
   "classifier_report": {
     "0": {
-      "precision": 0.9716216216216216,
-      "recall": 0.9573901464713716,
-      "f1-score": 0.9644533869885983,
-      "support": 751.0
+      "precision": 0.973359231241055,
+      "recall": 0.859363153904473,
+      "f1-score": 0.9128158913985505,
+      "support": 55398.0
     },
     "1": {
-      "precision": 0.4666666666666667,
-      "recall": 0.5714285714285714,
-      "f1-score": 0.5137614678899083,
-      "support": 49.0
+      "precision": 0.48369781312127236,
+      "recall": 0.8485235991629854,
+      "f1-score": 0.6161573526928921,
+      "support": 8602.0
     },
-    "accuracy": 0.93375,
+    "accuracy": 0.85790625,
     "macro avg": {
-      "precision": 0.7191441441441442,
-      "recall": 0.7644093589499714,
-      "f1-score": 0.7391074274392533,
-      "support": 800.0
+      "precision": 0.7285285221811637,
+      "recall": 0.8539433765337292,
+      "f1-score": 0.7644866220457213,
+      "support": 64000.0
     },
     "weighted avg": {
-      "precision": 0.9406931306306306,
-      "recall": 0.93375,
-      "f1-score": 0.9368485069438034,
-      "support": 800.0
+      "precision": 0.9075456762618929,
+      "recall": 0.85790625,
+      "f1-score": 0.8729431296806431,
+      "support": 64000.0
+    }
+  },
+  "classifier_report_high_recall": {
+    "threshold": 0.3,
+    "report": {
+      "0": {
+        "precision": 0.9842205411426185,
+        "recall": 0.765623307700639,
+        "f1-score": 0.8612679202371766,
+        "support": 55398.0
+      },
+      "1": {
+        "precision": 0.37893427724098344,
+        "recall": 0.9209486166007905,
+        "f1-score": 0.5369391351497899,
+        "support": 8602.0
+      },
+      "accuracy": 0.7865,
+      "macro avg": {
+        "precision": 0.681577409191801,
+        "recall": 0.8432859621507147,
+        "f1-score": 0.6991035276934832,
+        "support": 64000.0
+      },
+      "weighted avg": {
+        "precision": 0.9028662842350893,
+        "recall": 0.7865,
+        "f1-score": 0.817676104466525,
+        "support": 64000.0
+      }
+    }
+  },
+  "individual_models": {
+    "xgboost": {
+      "mae": 1.44,
+      "r2": 0.9738,
+      "roc_auc": 0.9323
+    },
+    "lightgbm": {
+      "mae": 1.548,
+      "r2": 0.9718,
+      "roc_auc": 0.9329
     }
   },
   "feature_importance": {
-    "soil_moisture_pct": 0.533407140095296,
-    "rainfall_mm_last_72h": 0.2313856952237365,
-    "vibration_intensity": 0.09859791210446714,
-    "slope_angle_deg": 0.04614205966320749,
-    "soil_porosity_index": 0.016616776787942655,
-    "vegetation_cover_pct": 0.01392381896357864,
-    "distance_to_stream_km": 0.012421109529683432,
-    "historical_landslide_count": 0.01113915386044736,
-    "rainfall_mm_last_24h": 0.00924466283023992,
-    "humidity_pct": 0.008671294548040585,
-    "temperature_c": 0.008487596944595926,
-    "elevation_m": 0.006531931347364426,
-    "soil_type_encoded": 0.002822120642973631,
-    "days_since_last_rainfall": 0.0006087274584261804
+    "soil_moisture_pct": 0.2354223470369975,
+    "slope_angle_deg": 0.17441852297782898,
+    "rainfall_mm_last_24h": 0.17308399789730708,
+    "rainfall_mm_last_72h": 0.16310448098580044,
+    "vibration_intensity": 0.07371973611613114,
+    "historical_landslide_count": 0.058438268023729326,
+    "soil_porosity_index": 0.03764123588552078,
+    "elevation_m": 0.02514950342377027,
+    "distance_to_stream_km": 0.016484558221480497,
+    "vegetation_cover_pct": 0.015448621286793302,
+    "temperature_c": 0.00972396830394864,
+    "humidity_pct": 0.009469276844880855,
+    "days_since_last_rainfall": 0.0052352424941180895,
+    "soil_type_encoded": 0.002660172777079667
   },
-  "n_train": 3200,
-  "n_test": 800
+  "n_train": 256000,
+  "n_test": 64000
 }

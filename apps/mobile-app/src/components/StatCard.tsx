@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Colors, Spacing, BorderRadius } from '../constants/theme';
+import { Spacing, BorderRadius } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 import { Ionicons } from '@expo/vector-icons';
 
 interface StatCardProps {
@@ -18,24 +19,36 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   subtitle,
   icon,
-  iconColor = Colors.primary,
+  iconColor,
   onPress,
   badge,
 }) => {
+  const { colors } = useTheme();
+  const activeIconColor = iconColor || colors.primary;
   const Container = onPress ? TouchableOpacity : View;
 
   return (
     // @ts-ignore
-    <Container style={styles.card} onPress={onPress} activeOpacity={0.7}>
+    <Container
+      style={[
+        styles.card,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.cardBorder,
+        },
+      ]}
+      onPress={onPress}
+      activeOpacity={0.7}
+    >
       <View style={styles.topRow}>
-        <View style={[styles.iconBox, { backgroundColor: `${iconColor}18` }]}>
-          <Ionicons name={icon} size={20} color={iconColor} />
+        <View style={[styles.iconBox, { backgroundColor: `${activeIconColor}18` }]}>
+          <Ionicons name={icon} size={20} color={activeIconColor} />
         </View>
         {badge}
       </View>
-      <Text style={styles.value}>{value}</Text>
-      <Text style={styles.title}>{title}</Text>
-      {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
+      <Text style={[styles.value, { color: colors.text }]}>{value}</Text>
+      <Text style={[styles.title, { color: colors.textMuted }]}>{title}</Text>
+      {subtitle && <Text style={[styles.subtitle, { color: colors.textSubtle }]}>{subtitle}</Text>}
     </Container>
   );
 };
@@ -44,11 +57,9 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     minWidth: '45%',
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
     marginBottom: Spacing.md,
   },
   topRow: {
@@ -67,18 +78,15 @@ const styles = StyleSheet.create({
   value: {
     fontSize: 26,
     fontWeight: '800',
-    color: Colors.text,
     letterSpacing: -0.5,
   },
   title: {
     fontSize: 13,
     fontWeight: '600',
-    color: Colors.textMuted,
     marginTop: 2,
   },
   subtitle: {
     fontSize: 11,
-    color: Colors.textSubtle,
     marginTop: 4,
   },
 });

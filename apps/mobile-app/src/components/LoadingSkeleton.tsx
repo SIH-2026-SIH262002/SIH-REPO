@@ -1,20 +1,32 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
-import { Colors, Spacing, BorderRadius } from '../constants/theme';
+import { Spacing, BorderRadius } from '../constants/theme';
+import { useTheme } from '../context/ThemeContext';
 
 export const LoadingSkeleton: React.FC<{ rows?: number }> = ({ rows = 3 }) => {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
       {Array.from({ length: rows }).map((_, index) => (
-        <View key={index} style={styles.card}>
+        <View
+          key={index}
+          style={[
+            styles.card,
+            {
+              backgroundColor: colors.card,
+              borderColor: colors.cardBorder,
+            },
+          ]}
+        >
           <View style={styles.headerRow}>
-            <View style={styles.avatar} />
+            <View style={[styles.avatar, { backgroundColor: colors.cardBorder }]} />
             <View style={styles.titleLines}>
-              <View style={styles.lineLong} />
-              <View style={styles.lineShort} />
+              <View style={[styles.lineLong, { backgroundColor: colors.cardBorder }]} />
+              <View style={[styles.lineShort, { backgroundColor: colors.cardBorder }]} />
             </View>
           </View>
-          <View style={styles.bodyLine} />
+          <View style={[styles.bodyLine, { backgroundColor: colors.cardBorder }]} />
         </View>
       ))}
     </View>
@@ -27,11 +39,9 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
   },
   card: {
-    backgroundColor: Colors.card,
     borderRadius: BorderRadius.lg,
     padding: Spacing.md,
     borderWidth: 1,
-    borderColor: Colors.cardBorder,
     opacity: 0.6,
   },
   headerRow: {
@@ -44,7 +54,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: BorderRadius.md,
-    backgroundColor: Colors.cardBorder,
   },
   titleLines: {
     flex: 1,
@@ -53,19 +62,16 @@ const styles = StyleSheet.create({
   lineLong: {
     height: 14,
     width: '70%',
-    backgroundColor: Colors.cardBorder,
     borderRadius: 4,
   },
   lineShort: {
     height: 10,
     width: '40%',
-    backgroundColor: Colors.cardBorder,
     borderRadius: 4,
   },
   bodyLine: {
     height: 12,
     width: '90%',
-    backgroundColor: Colors.cardBorder,
     borderRadius: 4,
     marginTop: 8,
   },

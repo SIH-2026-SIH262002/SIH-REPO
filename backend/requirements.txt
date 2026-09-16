@@ -12,3 +12,5 @@ twilio
 python-dotenv
 websockets
 pyjwt
+pytest
+httpx

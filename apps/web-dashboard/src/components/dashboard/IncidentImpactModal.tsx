@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Incident } from '../../types/incident';
-import { Vehicle } from '../../types/vehicle';
-import { ShieldAlert, AlertTriangle, X, Truck, Package, ArrowRight, CornerUpRight, CheckCircle2, Send, MapPin, Activity } from 'lucide-react';
+import { ShieldAlert, AlertTriangle, X, Truck, ArrowRight, Send, Activity, Loader2 } from 'lucide-react';
+import { apiService } from '../../services/apiService';
 
 interface IncidentImpactModalProps {
   incident: Incident | null;
@@ -58,81 +58,24 @@ export const IncidentImpactModal: React.FC<IncidentImpactModalProps> = ({
 }) => {
   const [impactChain, setImpactChain] = useState<IncidentImpactChain | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && incident) {
       setIsLoading(true);
-      fetch(`http://localhost:8080/api/incidents/${incident.id}/impact`)
-        .then((res) => (res.ok ? res.json() : null))
+      setLoadError(null);
+      setImpactChain(null);
+      apiService
+        .getIncidentImpactChain(String(incident.id))
         .then((data) => {
-          if (data && data.affectedCorridors) {
+          if (data?.affectedCorridors) {
             setImpactChain(data);
           } else {
-            // Fallback enriched impact chain
-            setImpactChain({
-              incidentId: Number(incident.id) || 101,
-              incidentType: incident.type || 'LANDSLIDE',
-              districtName: incident.location.district || 'Dima Hasao',
-              reportedSeverity: incident.severity || 'CRITICAL',
-              severityScore: 88,
-              confidenceLevel: 0.92,
-              affectedCorridors: [
-                {
-                  corridorCode: 'NH-27',
-                  corridorName: 'Guwahati-Silchar Primary Corridor',
-                  accessibilityStatus: 'BLOCKED',
-                  disruptionSeverity: 'CRITICAL',
-                },
-              ],
-              affectedVehiclesDetails: [
-                {
-                  vehicleCode: 'NER-07',
-                  driverName: 'Bikash Gogoi',
-                  status: 'DELAYED',
-                  currentPosition: 'Haflong Pass Sector',
-                  destination: 'Silchar Depot',
-                  eta: '4h 20m',
-                  riskLevel: 'HIGH',
-                },
-                {
-                  vehicleCode: 'NER-12',
-                  driverName: 'Lalthan Mawia',
-                  status: 'AT_RISK',
-                  currentPosition: 'Vairengte Cut',
-                  destination: 'Silchar Depot',
-                  eta: '6h 45m',
-                  riskLevel: 'CRITICAL',
-                },
-              ],
-              affectedShipmentsDetails: [
-                {
-                  shipmentCode: 'SHP-9081',
-                  commodity: 'Insulated Vaccines & Oxygen',
-                  priority: 'CRITICAL',
-                  destination: 'Civil Hospital Silchar',
-                  eta: '4h 20m',
-                  delayHours: 4.0,
-                  supplyCriticality: 'CRITICAL (Buffer: 6h)',
-                },
-              ],
-              supplyImpactSummary:
-                'Civil Hospital Oxygen reserve projected below safe buffer in 6h 20m due to Haflong Pass blockage.',
-              recommendedAction: 'REROUTE_VIA_SH51_BYPASS',
-              recommendationReason:
-                'Primary highway NH-27 predicted clearance (18h) exceeds alternative corridor travel time (8.1h).',
-              recommendationConfidence: 0.88,
-              reasoningBullets: [
-                'Active mudslide and earth slip reported at Haflong Pass',
-                'Rainfall sensors detect continued saturated soil movement',
-                'Primary route predicted clearance time is 18.0 hours',
-                'SH-51 Lumding Bypass adds +18 km but avoids risk zone',
-                'Vaccine thermal budget safe limit is 12.0 hours',
-              ],
-            });
+            setLoadError('No downstream impact chain is available for this incident yet.');
           }
         })
         .catch(() => {
-          setImpactChain(null);
+          setLoadError('Impact chain analysis service is currently unreachable.');
         })
         .finally(() => setIsLoading(false));
     }
@@ -161,6 +104,19 @@ export const IncidentImpactModal: React.FC<IncidentImpactModalProps> = ({
 
         {/* Relationship Chain Body */}
         <div className="p-5 space-y-4 max-h-[80vh] overflow-y-auto">
+          {isLoading && (
+            <div className="flex items-center justify-center gap-2 py-8 text-slate-500 text-xs font-medium">
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Computing incident impact chain…</span>
+            </div>
+          )}
+
+          {!isLoading && loadError && (
+            <div className="py-8 text-center text-xs text-slate-500 italic">{loadError}</div>
+          )}
+
+          {!isLoading && !loadError && impactChain && (
+            <>
           {/* Step 1: Incident & Affected Corridor */}
           <div className="space-y-1.5">
             <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider block">
@@ -222,9 +178,7 @@ export const IncidentImpactModal: React.FC<IncidentImpactModalProps> = ({
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
                 <span>Impact Assessment:</span>
               </div>
-              <p className="leading-relaxed">
-                {impactChain?.supplyImpactSummary || 'Civil Hospital Oxygen reserve projected below safe buffer in 6h 20m.'}
-              </p>
+              <p className="leading-relaxed">{impactChain?.supplyImpactSummary}</p>
             </div>
           </div>
 
@@ -241,11 +195,13 @@ export const IncidentImpactModal: React.FC<IncidentImpactModalProps> = ({
               <div className="flex items-center justify-between">
                 <span className="font-extrabold text-emerald-900 text-xs flex items-center space-x-1.5">
                   <Activity className="w-4 h-4 text-emerald-600" />
-                  <span>RECOMMENDED ACTION: {impactChain?.recommendedAction || 'REROUTE_VIA_SH51_BYPASS'}</span>
+                  <span>RECOMMENDED ACTION: {impactChain?.recommendedAction || 'N/A'}</span>
                 </span>
-                <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
-                  CONFIDENCE: {Math.round((impactChain?.recommendationConfidence || 0.88) * 100)}%
-                </span>
+                {typeof impactChain?.recommendationConfidence === 'number' && (
+                  <span className="text-[10px] font-mono bg-emerald-100 text-emerald-800 font-bold px-2 py-0.5 rounded">
+                    CONFIDENCE: {Math.round(impactChain.recommendationConfidence * 100)}%
+                  </span>
+                )}
               </div>
 
               <p className="text-[11px] text-emerald-900 font-mono leading-relaxed">
@@ -259,6 +215,8 @@ export const IncidentImpactModal: React.FC<IncidentImpactModalProps> = ({
               </ul>
             </div>
           </div>
+            </>
+          )}
         </div>
 
         {/* Modal Footer Actions */}
@@ -269,16 +227,19 @@ export const IncidentImpactModal: React.FC<IncidentImpactModalProps> = ({
           >
             Close
           </button>
-          <button
-            onClick={() => {
-              onClose();
-              onOpenRerouteModal?.('NER-07');
-            }}
-            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-md shadow-emerald-600/20 transition flex items-center space-x-2"
-          >
-            <Send className="w-4 h-4" />
-            <span>Reroute Convoy (NER-07)</span>
-          </button>
+          {impactChain?.affectedVehiclesDetails?.[0]?.vehicleCode && (
+            <button
+              onClick={() => {
+                const vehicleCode = impactChain.affectedVehiclesDetails[0].vehicleCode;
+                onClose();
+                onOpenRerouteModal?.(vehicleCode);
+              }}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg shadow-md shadow-emerald-600/20 transition flex items-center space-x-2"
+            >
+              <Send className="w-4 h-4" />
+              <span>Reroute Convoy ({impactChain.affectedVehiclesDetails[0].vehicleCode})</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

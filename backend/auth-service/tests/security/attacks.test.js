@@ -2,6 +2,7 @@ const request = require('supertest');
 const express = require('express');
 const Auth = require('../../index');
 const MockStorageAdapter = require('../../adapters/storage/mock');
+const identityEngine = require('../../core/identity');
 
 describe('Security Integrations & Attack Resistance', () => {
     let app, authSystem, mockAdapter, sessionId, oldRefreshToken, currentRefreshToken;
@@ -24,9 +25,13 @@ describe('Security Integrations & Attack Resistance', () => {
         app.use('/auth', authSystem.router);
     });
 
-    test('Setup: Register and Login', async () => {
-        await request(app).post('/auth/register').send({ email: 'sec@test.com', password: 'pass' });
-        const loginRes = await request(app).post('/auth/login').send({ email: 'sec@test.com', password: 'pass' });
+    test('Setup: Provision test account (out-of-band, /register requires Admin auth) and login', async () => {
+        // /register is Admin-gated in a closed-provisioning system -- these
+        // token/session attack scenarios don't exercise registration itself,
+        // so the fixture account is seeded directly via the identity layer.
+        identityEngine.__init__(mockAdapter);
+        await identityEngine.createUser({ identifier: 'sec@test.com', password: 'password_1234' });
+        const loginRes = await request(app).post('/auth/login').send({ email: 'sec@test.com', password: 'password_1234' });
 
         oldRefreshToken = loginRes.body.refreshToken;
         sessionId = loginRes.body.sessionId;

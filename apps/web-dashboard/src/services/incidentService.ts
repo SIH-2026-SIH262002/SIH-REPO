@@ -1,15 +1,11 @@
-import { MOCK_INCIDENTS } from '../data/mockData';
-import { Incident } from '../types/incident';
+import { apiService } from './apiService';
 
 export const incidentService = {
-  getIncidents: async (): Promise<Incident[]> => {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve([...MOCK_INCIDENTS]), 100);
-    });
+  getIncidents: async (): Promise<any[]> => {
+    return apiService.getReports();
   },
 
-  addIncident: async (incident: Incident): Promise<Incident> => {
-    MOCK_INCIDENTS.unshift(incident);
-    return incident;
+  addIncident: async (formData: FormData): Promise<any> => {
+    return apiService.submitReport(formData);
   },
 };

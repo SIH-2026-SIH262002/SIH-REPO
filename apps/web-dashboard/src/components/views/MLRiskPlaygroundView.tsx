@@ -28,16 +28,22 @@ export const MLRiskPlaygroundView: React.FC = () => {
   const [predictedProbability, setPredictedProbability] = useState<number>(0.74);
   const [isPredicting, setIsPredicting] = useState(false);
 
-  // Fetch model info from backend
+  // Fetch model info (name, accuracy metrics, feature importances) from backend
   useEffect(() => {
     const fetchInfo = async () => {
       try {
-        const data = await apiService.getFeatureImportance();
+        const data = await apiService.getModelInfo();
+        if (data.model_name) {
+          setModelName(data.model_name);
+        }
+        if (data.metrics) {
+          setMetrics(data.metrics);
+        }
         if (data.feature_importances) {
           setFeatureImportances(data.feature_importances);
         }
       } catch (err) {
-        console.warn('Backend feature importance fetch offline, using standard gradient boosted importances');
+        console.warn('Backend model info fetch offline, using standard gradient boosted defaults');
       }
     };
     fetchInfo();

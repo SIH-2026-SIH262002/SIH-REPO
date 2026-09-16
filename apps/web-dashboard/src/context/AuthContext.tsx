@@ -1,6 +1,11 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import { User, LoginPayload, UpdateProfilePayload } from '../types/auth';
+import { User, LoginPayload, UpdateProfilePayload, normalizeUserRole } from '../types/auth';
 import { authApi } from '../api/authApi';
+
+const normalizeUser = (u: User): User => ({
+  ...u,
+  role: normalizeUserRole(u.role),
+});
 
 interface AuthContextType {
   user: User | null;
@@ -23,19 +28,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     const savedUserStr = localStorage.getItem('user') || sessionStorage.getItem('user');
 
-    if (token) {
-      try {
-        if (savedUserStr) {
-          setUser(JSON.parse(savedUserStr));
-        }
-        const freshUser = await authApi.getMe();
-        setUser(freshUser);
-        const isLocal = !!localStorage.getItem('accessToken');
-        const storage = isLocal ? localStorage : sessionStorage;
-        storage.setItem('user', JSON.stringify(freshUser));
-      } catch (err) {
-        console.error('Failed to initialize user session:', err);
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      if (savedUserStr) {
+        setUser(normalizeUser(JSON.parse(savedUserStr)));
       }
+      const freshUser = await authApi.getMe();
+      const normalized = normalizeUser(freshUser);
+      setUser(normalized);
+      const isLocal = !!localStorage.getItem('accessToken');
+      const storage = isLocal ? localStorage : sessionStorage;
+      storage.setItem('user', JSON.stringify(normalized));
+    } catch (err) {
+      console.error('Failed to initialize user session:', err);
     }
     setIsLoading(false);
   }, []);
@@ -55,37 +64,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (payload: LoginPayload): Promise<User> => {
     const data = await authApi.login(payload);
     const { accessToken, refreshToken, sessionId, user: loggedUser } = data;
+    const normalizedUser = normalizeUser(loggedUser);
 
     const storage = payload.rememberMe ? localStorage : sessionStorage;
     storage.setItem('accessToken', accessToken);
     storage.setItem('refreshToken', refreshToken);
     storage.setItem('sessionId', sessionId);
-    storage.setItem('user', JSON.stringify(loggedUser));
+    storage.setItem('user', JSON.stringify(normalizedUser));
 
-    setUser(loggedUser);
-    return loggedUser;
+    setUser(normalizedUser);
+    return normalizedUser;
   };
 
   const logout = async () => {
     const sessionId = localStorage.getItem('sessionId') || sessionStorage.getItem('sessionId');
-    if (sessionId) {
-      try {
-        await authApi.logout(sessionId);
-      } catch (err) {
-        console.warn('Logout session revocation failed or already expired:', err);
-      }
-    }
+
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     localStorage.removeItem('sessionId');
     localStorage.removeItem('user');
     sessionStorage.clear();
     setUser(null);
+
+    if (sessionId) {
+      authApi.logout(sessionId).catch((err) => {
+        console.warn('Logout session revocation failed or already expired:', err);
+      });
+    }
   };
 
   const updateUserProfile = async (payload: UpdateProfilePayload): Promise<User> => {
     const res = await authApi.updateProfile(payload);
-    const updatedUser = res.user;
+    const updatedUser = normalizeUser(res.user);
     setUser(updatedUser);
     const isLocal = !!localStorage.getItem('accessToken');
     const storage = isLocal ? localStorage : sessionStorage;
@@ -96,7 +106,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const refreshUser = async () => {
     try {
       const freshUser = await authApi.getMe();
-      setUser(freshUser);
+      setUser(normalizeUser(freshUser));
     } catch (err) {
       console.error('Failed to refresh user profile:', err);
     }
