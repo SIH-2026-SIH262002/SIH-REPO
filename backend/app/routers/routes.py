@@ -27,6 +27,7 @@ def plan(
     k: int = 3,
     criticality_multiplier: float = 1.0,
     avoid_node: Optional[str] = None,
+    avoid_steep_roads: bool = False,
     user: dict = Depends(get_current_user),
 ):
     result = routing_service.plan_routes(
@@ -35,6 +36,7 @@ def plan(
         k=k,
         criticality_multiplier=criticality_multiplier,
         avoid_node=avoid_node,
+        avoid_steep_roads=avoid_steep_roads,
     )
     if "error" in result:
         raise HTTPException(400, result["error"])

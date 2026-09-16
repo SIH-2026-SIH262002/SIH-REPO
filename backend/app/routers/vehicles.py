@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional
 from app.services.vehicle_service import VEHICLES
-from app.services import simulation_service
+from app.services import simulation_service, vehicle_service
 from app.auth import get_current_user, require_roles
 
 router = APIRouter(prefix="/api/vehicles", tags=["vehicles"])
@@ -28,6 +28,16 @@ class DeliveryStatusPayload(BaseModel):
     notes: Optional[str] = ""
 
 
+class AssignRoutePayload(BaseModel):
+    origin: str
+    destination: str
+    avoid_node: Optional[str] = None
+    avoid_steep_roads: bool = False
+    criticality_multiplier: float = 1.0
+    route_id: Optional[str] = None
+    override_avoid_risk: bool = False
+
+
 @router.get("")
 def list_vehicles(user: dict = Depends(get_current_user)):
     """
@@ -37,7 +47,7 @@ def list_vehicles(user: dict = Depends(get_current_user)):
     see DashboardPage.tsx's unconditional getVehicles() call. Still requires
     a valid session (401 for anonymous callers).
     """
-    return list(VEHICLES.values())
+    return [vehicle_service.enrich_vehicle(v) for v in VEHICLES.values()]
 
 
 @router.get("/me")
@@ -53,7 +63,7 @@ def get_driver_assigned_vehicle(user: dict = Depends(get_current_user)):
         d_name = str(v.get("driver_name", "")).strip().lower()
         v_code = str(v.get("code", "")).strip().lower()
         if (user_name and user_name in d_name) or (user_id and user_id in v_id.lower()) or (user_id and user_id in v_code):
-            return {"assigned": True, "vehicle": v}
+            return {"assigned": True, "vehicle": vehicle_service.enrich_vehicle(v)}
 
     # No fabricated fallback: an unmatched driver genuinely has no assigned
     # vehicle in this simulation, and must never be handed someone else's.
@@ -172,4 +182,79 @@ def confirm_delivery(
         "status": "CONFIRMED",
         "vehicle_id": vehicle_id,
         "confirmed_by": user.get("fullName")
+    }
+
+
+@router.post("/{vehicle_id}/assign-route")
+def assign_route(
+    vehicle_id: str,
+    payload: AssignRoutePayload,
+    user: dict = Depends(require_roles(["LOGISTICS_OPERATOR", "ADMIN"]))
+):
+    """
+    Real route dispatch: the Logistics Operator selects a route (previously
+    returned by GET /api/routes/plan) and this assigns it to a vehicle.
+
+    The backend NEVER trusts the frontend's claim that a route is safe or that
+    it matches what GraphHopper/NetworkX actually computed -- it re-runs
+    routing_service.plan_routes() with the same parameters and only accepts
+    `route_id` if it's still present among the freshly computed candidates.
+    An AVOID-classified route is rejected unless override_avoid_risk is set
+    (emergency use only, still requires LOGISTICS_OPERATOR/ADMIN).
+    """
+    try:
+        result = vehicle_service.assign_route_to_vehicle(
+            vehicle_id,
+            origin=payload.origin,
+            destination=payload.destination,
+            avoid_node=payload.avoid_node,
+            avoid_steep_roads=payload.avoid_steep_roads,
+            criticality_multiplier=payload.criticality_multiplier,
+            route_id=payload.route_id,
+            dispatched_by=user.get("fullName"),
+            override_avoid_risk=payload.override_avoid_risk,
+        )
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+
+    return {
+        "status": "DISPATCHED",
+        "vehicle_id": vehicle_id,
+        "dispatched_by": user.get("fullName"),
+        "route": result["selected_route"],
+        "engine": result["plan"].get("engine"),
+        "routing_source": result["plan"].get("routing_source"),
+    }
+
+
+@router.get("/{vehicle_id}/active-route")
+def get_active_route(
+    vehicle_id: str,
+    user: dict = Depends(get_current_user)
+):
+    """Fetch the vehicle's currently assigned/dispatched route (driver or operator view)."""
+    target_v = VEHICLES.get(vehicle_id)
+    if not target_v:
+        for v in VEHICLES.values():
+            if v.get("code") == vehicle_id:
+                target_v = v
+                break
+    if not target_v:
+        raise HTTPException(status_code=404, detail=f"Vehicle '{vehicle_id}' not found.")
+
+    return {
+        "vehicle_id": target_v["id"],
+        "vehicle_code": target_v.get("code"),
+        "route_id": target_v.get("active_route_id"),
+        "status": target_v.get("active_route_status"),
+        "engine": target_v.get("active_route_engine"),
+        "coordinates": target_v.get("active_route_coordinates"),
+        "path": target_v.get("route_nodes"),
+        "origin": target_v.get("origin"),
+        "origin_name": target_v.get("origin_name"),
+        "destination": target_v.get("destination"),
+        "destination_name": target_v.get("destination_name"),
+        "dispatched_by": target_v.get("dispatched_by"),
     }

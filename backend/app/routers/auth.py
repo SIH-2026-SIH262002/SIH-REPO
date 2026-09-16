@@ -276,23 +276,19 @@ def get_me(authorization: str | None = Header(None)):
         raise HTTPException(401, "Missing or invalid Authorization header")
     
     token = authorization.split(" ")[1]
-    try:
-        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        email = payload.get("email", "").lower()
-        if email in USERS_DB:
-            user_obj = USERS_DB[email]
-            if user_obj.get("status") in ["SUSPENDED", "DEACTIVATED"]:
-                raise HTTPException(403, "Account is suspended or deactivated. Contact system administrator.")
-        return {
-            "userId": payload.get("sub"),
-            "fullName": payload.get("fullName", "User"),
-            "email": payload.get("email", ""),
-            "phone": payload.get("phone", ""),
-            "role": payload.get("role", "FIELD_OFFICER"),
-            "district": payload.get("district", ""),
-            "organization": payload.get("organization", "")
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(401, f"Invalid or expired access token: {str(e)}")
+    from app.auth import decode_jwt
+    payload = decode_jwt(token)
+    email = payload.get("email", "").lower()
+    if email in USERS_DB:
+        user_obj = USERS_DB[email]
+        if user_obj.get("status") in ["SUSPENDED", "DEACTIVATED"]:
+            raise HTTPException(403, "Account is suspended or deactivated. Contact system administrator.")
+    return {
+        "userId": payload.get("sub"),
+        "fullName": payload.get("fullName", "User"),
+        "email": payload.get("email", ""),
+        "phone": payload.get("phone", ""),
+        "role": payload.get("role", "FIELD_OFFICER"),
+        "district": payload.get("district", ""),
+        "organization": payload.get("organization", "")
+    }

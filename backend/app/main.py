@@ -19,7 +19,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.services import simulation_service, notify_service, vehicle_service, ml_service
-from app.routers import sensors, risk, routes, sos, reports, alerts, dashboard, vehicles, notify, i18n, intelligence, auth
+from app.routers import sensors, risk, routes, sos, reports, alerts, dashboard, vehicles, notify, i18n, intelligence, auth, geocoding
 from app import ws
 
 app = FastAPI(
@@ -45,6 +45,7 @@ app.include_router(auth.router)
 app.include_router(sensors.router)
 app.include_router(risk.router)
 app.include_router(routes.router)
+app.include_router(geocoding.router)
 app.include_router(sos.router)
 app.include_router(reports.router)
 app.include_router(alerts.router)
