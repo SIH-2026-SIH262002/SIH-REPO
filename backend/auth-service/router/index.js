@@ -5,6 +5,20 @@ const tokenEngine = require('../core/token');
 const claimsEngine = require('../core/claims');
 const passwordResetEngine = require('../core/passwordReset');
 const events = require('../core/events');
+const { CANONICAL_DISTRICTS } = require('../core/districts');
+
+// Strips password_hash and shapes a storage-adapter user row for API responses.
+// Never return a raw adapter row directly -- some adapter methods `.returning()`
+// every column, password_hash included.
+const publicUser = (u) => ({
+    id: u.id,
+    identifier: u.identifier,
+    is_active: u.is_active,
+    status: identityEngine.deriveAccountStatus(u),
+    metadata: u.metadata,
+    created_at: u.created_at,
+    updated_at: u.updated_at
+});
 
 const authenticateMiddleware = require('../middleware/authenticate')({ trustJwtClaims: true });
 
@@ -82,8 +96,16 @@ module.exports = function createRouter(options = {}) {
         return 'FIELD_OFFICER';
     };
 
+
     // --- Register ---
-    router.post('/register', async (req, res) => {
+    // Closed System Security Enforcement: Public self-registration is strictly
+    // disabled. Only an authenticated Administrator may provision new accounts.
+    // BUG FIX: this previously checked `req.user?.role`, a field nothing ever
+    // sets (authenticateMiddleware attaches `req.claims`), so the guard always
+    // evaluated to false and every call -- including a genuine Admin's -- was
+    // rejected with 403. Requiring the middleware here means a missing/invalid
+    // token now correctly fails with 401 instead of silently falling through.
+    router.post('/register', authenticateMiddleware, async (req, res) => {
         try {
             const { fullName, email, phone, identifier, password, role, organization, district, metadata = {} } = req.body;
             const resolvedIdentifier = email || phone || identifier;
@@ -91,18 +113,36 @@ module.exports = function createRouter(options = {}) {
             if (!resolvedIdentifier || !password) {
                 return res.status(400).json({ error: 'Email/Phone identifier and password required' });
             }
+            if (password.length < 8) {
+                return res.status(400).json({ error: 'Password must be at least 8 characters' });
+            }
 
-            // Closed System Security Enforcement: Public self-registration is strictly disabled.
-            // Only authenticated Administrators can provision new accounts via this endpoint.
-            const authHeader = req.headers.authorization;
-            const isCallerAdmin = authHeader && (req.user?.role === 'ADMIN' || req.user?.role === 'SUPER_ADMIN');
+            const isCallerAdmin = req.claims?.role === 'ADMIN';
             if (!isCallerAdmin) {
                 return res.status(403).json({
                     error: 'Access Denied: Public self-registration is disabled. Account provisioning requires Administrator authorization.'
                 });
             }
 
-            let canonicalRole = normalizeCanonicalRole(role);
+            // SECURITY: strictly reject an unrecognized role/district instead of
+            // silently coercing it to a default. The Admin Console UI only ever
+            // submits one of these values via controlled dropdowns, but the
+            // server must not rely on that -- any other caller of this endpoint
+            // gets the same validation the FastAPI mirror already enforces.
+            const requestedRole = String(role || '').toUpperCase();
+            if (!identityEngine.ALLOWED_ROLES.includes(requestedRole)) {
+                return res.status(400).json({
+                    error: `Invalid role '${role}'. Must be one of: ${identityEngine.ALLOWED_ROLES.join(', ')}`
+                });
+            }
+            const requestedDistrict = String(district || '').trim();
+            if (!CANONICAL_DISTRICTS.includes(requestedDistrict)) {
+                return res.status(400).json({
+                    error: `Unknown district '${district}'. Must be one of the 18 NER districts.`
+                });
+            }
+
+            const canonicalRole = requestedRole;
 
             const combinedMetadata = {
                 fullName: fullName || '',
@@ -163,6 +203,17 @@ module.exports = function createRouter(options = {}) {
             if (!isValid) {
                 events.emit(events.EVENTS.LOGIN_FAILURE, { userId: user.id, reason: 'INVALID_PASSWORD' });
                 return res.status(401).json({ error: 'Invalid credentials' });
+            }
+
+            // SECURITY: a suspended/deactivated account must be blocked at
+            // login, not only on refresh -- otherwise Admin's "suspend user"
+            // action has no real effect until an existing token expires.
+            const accountStatus = identityEngine.deriveAccountStatus(user);
+            if (accountStatus !== 'ACTIVE') {
+                events.emit(events.EVENTS.LOGIN_FAILURE, { userId: user.id, reason: `ACCOUNT_${accountStatus}` });
+                return res.status(403).json({
+                    error: 'Account is suspended or deactivated. Contact system administrator.'
+                });
             }
 
             await handleLoginSuccess(user, req, res);
@@ -387,8 +438,117 @@ module.exports = function createRouter(options = {}) {
                 return res.status(403).json({ error: 'Access denied: Admin privileges required' });
             }
             const users = await identityEngine.getAllUsers();
-            return res.json({ users });
+            return res.json({ users: users.map(publicUser) });
         } catch (err) {
+            return res.status(500).json({ error: err.message });
+        }
+    });
+
+    // --- Admin account lifecycle ---
+    // docs/architecture/PERMISSIONS.md: USER_SUSPEND / USER_REACTIVATE /
+    // USER_DEACTIVATE / ROLE_MANAGE -- all ADMIN-only, GLOBAL scope, HIGH-to-
+    // CRITICAL risk, confirmation required client-side, self-protection and
+    // last-active-Administrator protection enforced here server-side.
+
+    router.patch('/users/:id/status', authenticateMiddleware, async (req, res) => {
+        try {
+            if (req.claims?.role !== 'ADMIN') {
+                return res.status(403).json({ error: 'Access denied: Admin privileges required' });
+            }
+
+            const targetId = req.params.id;
+            const newStatus = String(req.body?.status || '').toUpperCase();
+            if (!identityEngine.ALLOWED_STATUSES.includes(newStatus)) {
+                return res.status(400).json({
+                    error: `Invalid status. Must be one of: ${identityEngine.ALLOWED_STATUSES.join(', ')}`
+                });
+            }
+
+            if (targetId === req.identity.id) {
+                return res.status(403).json({ error: 'Administrators cannot change their own account status.' });
+            }
+
+            const target = await identityEngine.findUserById(targetId);
+            if (!target) return res.status(404).json({ error: 'User not found' });
+
+            const isAdminTarget = (target.metadata || {}).role === 'ADMIN';
+            if (isAdminTarget && newStatus !== 'ACTIVE') {
+                const otherActiveAdmins = await identityEngine.countOtherActiveAdmins(targetId);
+                if (otherActiveAdmins < 1) {
+                    return res.status(409).json({
+                        error: 'Cannot suspend or deactivate the last active Administrator account.'
+                    });
+                }
+            }
+
+            const updated = await identityEngine.setAccountStatus(targetId, newStatus);
+            return res.json({ message: `Account status updated to ${newStatus}`, user: publicUser(updated) });
+        } catch (err) {
+            if (err.message === 'USER_NOT_FOUND') return res.status(404).json({ error: 'User not found' });
+            return res.status(500).json({ error: err.message });
+        }
+    });
+
+    router.patch('/users/:id/role', authenticateMiddleware, async (req, res) => {
+        try {
+            if (req.claims?.role !== 'ADMIN') {
+                return res.status(403).json({ error: 'Access denied: Admin privileges required' });
+            }
+
+            const targetId = req.params.id;
+            const newRole = String(req.body?.role || '').toUpperCase();
+            if (!identityEngine.ALLOWED_ROLES.includes(newRole)) {
+                return res.status(400).json({
+                    error: `Invalid role. Must be one of: ${identityEngine.ALLOWED_ROLES.join(', ')}`
+                });
+            }
+
+            if (targetId === req.identity.id) {
+                return res.status(403).json({ error: 'Administrators cannot change their own role.' });
+            }
+
+            const target = await identityEngine.findUserById(targetId);
+            if (!target) return res.status(404).json({ error: 'User not found' });
+
+            const isAdminTarget = (target.metadata || {}).role === 'ADMIN';
+            if (isAdminTarget && newRole !== 'ADMIN') {
+                const otherActiveAdmins = await identityEngine.countOtherActiveAdmins(targetId);
+                if (otherActiveAdmins < 1) {
+                    return res.status(409).json({
+                        error: 'Cannot change the role of the last active Administrator account.'
+                    });
+                }
+            }
+
+            const updated = await identityEngine.setUserRole(targetId, newRole);
+            return res.json({ message: `Role updated to ${newRole}`, user: publicUser(updated) });
+        } catch (err) {
+            if (err.message === 'USER_NOT_FOUND') return res.status(404).json({ error: 'User not found' });
+            return res.status(500).json({ error: err.message });
+        }
+    });
+
+    router.patch('/users/:id/district', authenticateMiddleware, async (req, res) => {
+        try {
+            if (req.claims?.role !== 'ADMIN') {
+                return res.status(403).json({ error: 'Access denied: Admin privileges required' });
+            }
+
+            const targetId = req.params.id;
+            const district = String(req.body?.district || '').trim();
+            if (!CANONICAL_DISTRICTS.includes(district)) {
+                return res.status(400).json({
+                    error: `Unknown district '${district}'. Must be one of the 18 NER districts.`
+                });
+            }
+
+            const target = await identityEngine.findUserById(targetId);
+            if (!target) return res.status(404).json({ error: 'User not found' });
+
+            const updated = await identityEngine.setUserDistrict(targetId, district);
+            return res.json({ message: `District updated to ${district}`, user: publicUser(updated) });
+        } catch (err) {
+            if (err.message === 'USER_NOT_FOUND') return res.status(404).json({ error: 'User not found' });
             return res.status(500).json({ error: err.message });
         }
     });

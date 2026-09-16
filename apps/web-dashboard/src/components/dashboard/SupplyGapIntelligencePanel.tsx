@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, Clock, AlertTriangle, ArrowRight, CornerUpRight, Send, Activity, RefreshCw } from 'lucide-react';
+import { ShieldAlert, Send, RefreshCw } from 'lucide-react';
 import { Vehicle } from '../../types/vehicle';
 import { apiService } from '../../services/apiService';
 
@@ -14,23 +14,15 @@ interface SupplyGapData {
   availableQuantity?: number;
   unitOfMeasure?: string;
   consumptionRatePerHour?: number;
-  incomingShipmentCode?: string;
-  incomingShipmentEta?: string;
-  incomingDelayHours?: number;
-  projectedShortageHours?: number;
-  recommendationConfidence?: number;
   reasons?: string[];
-  dataFreshness?: string;
 }
 
 interface SupplyGapIntelligencePanelProps {
   onOpenRerouteModal?: (vehicle: Vehicle | null) => void;
-  onSelectShipment?: (shipmentCode: string) => void;
 }
 
 export const SupplyGapIntelligencePanel: React.FC<SupplyGapIntelligencePanelProps> = ({
   onOpenRerouteModal,
-  onSelectShipment,
 }) => {
   const [data, setData] = useState<SupplyGapData | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,53 +31,31 @@ export const SupplyGapIntelligencePanel: React.FC<SupplyGapIntelligencePanelProp
   const fetchSupplyGapIntelligence = async () => {
     setIsLoading(true);
     setError(null);
+    setData(null);
     try {
       const res = await apiService.getSupplyGapIntelligence();
-      if (res && res.supply_gaps && res.supply_gaps.length > 0) {
+      if (res?.supply_gaps?.length > 0) {
         const item = res.supply_gaps[0];
         setData({
           district: item.district,
-          commodityType: item.commodities.join(', ') || 'Essential Commodities',
+          commodityType: item.commodities?.join(', ') || 'Essential Commodities',
           riskLevel: item.max_corridor_risk >= 70 ? 'CRITICAL' : item.max_corridor_risk >= 50 ? 'HIGH' : 'MODERATE',
           estimatedDelayHours: item.delayed_shipments * 2,
           affectedShipmentsCount: item.incoming_shipments_count,
           recommendedAction: item.operational_recommendation,
           rationale: `Monitored ${item.district} corridor with peak segment hazard risk score ${item.max_corridor_risk}.`,
-          recommendationConfidence: 0.88,
+          availableQuantity: item.stock_quantity,
+          unitOfMeasure: item.unit,
+          consumptionRatePerHour: item.consumption_rate_per_hr,
           reasons: [
             `Peak corridor risk score: ${item.max_corridor_risk}`,
             `Incoming shipments in transit: ${item.incoming_shipments_count}`,
             `Warehouse stock status: ${item.warehouse_stock_feed}`
           ],
-          dataFreshness: 'Live (5s tick)',
         });
       }
     } catch (e) {
-      console.warn('FastAPI intelligence API offline, displaying fallback gap state');
-      setError('Telemetry stream unavailable');
-      setData({
-        district: 'Dima Hasao (Haflong)',
-        commodityType: 'OXYGEN_CYLINDERS',
-        riskLevel: 'CRITICAL',
-        estimatedDelayHours: 4,
-        affectedShipmentsCount: 1,
-        recommendedAction: 'REROUTE_CONVOY_SH51_BYPASS',
-        rationale: 'Convoy NER-07 carrying oxygen delayed at Haflong Pass due to active landslide.',
-        availableQuantity: 14.0,
-        unitOfMeasure: 'Cylinders',
-        consumptionRatePerHour: 2.2,
-        incomingShipmentCode: 'NER-07',
-        incomingShipmentEta: '4h 20m',
-        incomingDelayHours: 4.0,
-        projectedShortageHours: 6.33,
-        recommendationConfidence: 0.88,
-        reasons: [
-          'Civil Hospital reserve down to 14.0 units',
-          'Consumption rate is 2.2 units/hour',
-          'Primary highway NH-27 clearance estimated > 18 hours',
-        ],
-        dataFreshness: '3 mins ago (Cached)',
-      });
+      setError('Supply gap intelligence service is currently unreachable.');
     } finally {
       setIsLoading(false);
     }
@@ -104,7 +74,24 @@ export const SupplyGapIntelligencePanel: React.FC<SupplyGapIntelligencePanelProp
     );
   }
 
-  if (!data) return null;
+  if (error) {
+    return (
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-xs text-slate-500 flex items-center justify-between">
+        <span>{error}</span>
+        <button onClick={fetchSupplyGapIntelligence} className="text-slate-700 font-bold underline">
+          Retry
+        </button>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="bg-white border border-slate-200 rounded-xl p-4 shadow-sm text-xs text-slate-500 italic">
+        No supply gap risk currently detected.
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white border border-rose-200 rounded-xl p-4 shadow-sm space-y-3 font-sans relative overflow-hidden">
@@ -139,29 +126,26 @@ export const SupplyGapIntelligencePanel: React.FC<SupplyGapIntelligencePanelProp
       </div>
 
       {/* Grid Metrics Breakdown */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5 bg-rose-50/50 p-3 rounded-lg border border-rose-100 text-xs">
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5 bg-rose-50/50 p-3 rounded-lg border border-rose-100 text-xs">
         <div>
-          <span className="text-[9px] uppercase font-bold text-slate-400 block">Commodity Stock</span>
-          <strong className="text-rose-900 font-extrabold text-sm">{data.availableQuantity} {data.unitOfMeasure}</strong>
-          <span className="text-[9px] text-slate-500 block">Rate: {data.consumptionRatePerHour} /hr</span>
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Warehouse Stock</span>
+          <strong className="text-rose-900 font-extrabold text-sm">
+            {data.availableQuantity != null ? `${data.availableQuantity} ${data.unitOfMeasure || ''}` : 'No warehouse linked'}
+          </strong>
+          {data.consumptionRatePerHour != null && (
+            <span className="text-[9px] text-slate-500 block">Rate: {data.consumptionRatePerHour} /hr</span>
+          )}
         </div>
 
         <div>
-          <span className="text-[9px] uppercase font-bold text-slate-400 block">Incoming Convoy</span>
-          <strong className="text-slate-900 font-mono text-sm">{data.incomingShipmentCode}</strong>
-          <span className="text-[9px] text-rose-700 font-bold block">Delay: +{data.incomingDelayHours}h</span>
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Incoming Shipments</span>
+          <strong className="text-slate-900 font-mono text-sm">{data.affectedShipmentsCount}</strong>
+          <span className="text-[9px] text-rose-700 font-bold block">Delayed: {data.estimatedDelayHours > 0 ? `~${data.estimatedDelayHours}h` : 'None'}</span>
         </div>
 
         <div>
-          <span className="text-[9px] uppercase font-bold text-slate-400 block">Projected Shortage</span>
-          <strong className="text-rose-700 font-mono text-sm">~{data.projectedShortageHours}h</strong>
-          <span className="text-[9px] text-slate-500 block">Buffer Threshold Exceeded</span>
-        </div>
-
-        <div>
-          <span className="text-[9px] uppercase font-bold text-slate-400 block">AI Confidence</span>
-          <strong className="text-emerald-700 font-mono text-sm">{Math.round((data.recommendationConfidence || 0.88) * 100)}%</strong>
-          <span className="text-[9px] text-slate-400 block">{data.dataFreshness}</span>
+          <span className="text-[9px] uppercase font-bold text-slate-400 block">Recommended Action</span>
+          <strong className="text-rose-700 font-mono text-[11px]">{data.recommendedAction}</strong>
         </div>
       </div>
 
@@ -177,13 +161,6 @@ export const SupplyGapIntelligencePanel: React.FC<SupplyGapIntelligencePanelProp
 
       {/* Action Triggers */}
       <div className="flex items-center justify-end space-x-2 pt-1">
-        <button
-          onClick={() => onSelectShipment?.('SHP-9081')}
-          className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-bold transition"
-        >
-          View Shipment (SHP-9081)
-        </button>
-
         <button
           onClick={() => onOpenRerouteModal?.(null)}
           className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1.5"

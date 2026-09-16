@@ -1,8 +1,10 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { ProtectedRoute } from './ProtectedRoute';
+import { AdminRoutes } from './AdminRoutes';
+import { LogisticsRoutes } from './LogisticsRoutes';
+import { EmergencyRoutes } from './EmergencyRoutes';
 import { LoginPage } from '../pages/LoginPage';
-import { RegisterPage } from '../pages/RegisterPage';
 import { ForgotPasswordPage } from '../pages/ForgotPasswordPage';
 import { ResetPasswordPage } from '../pages/ResetPasswordPage';
 import { ProfilePage } from '../pages/ProfilePage';
@@ -16,10 +18,10 @@ const RoleBasedRedirect: React.FC = () => {
   if (!user) return <Navigate to="/login" replace />;
 
   const role = user.role;
-  if (role === 'ADMIN') {
+  if (role === 'SUPER_ADMIN' || role === 'ADMIN') {
     return <Navigate to="/admin" replace />;
   }
-  if (role === 'EMERGENCY_OPERATOR') {
+  if (role === 'EMERGENCY_OPERATOR' || role === 'DISTRICT_AUTHORITY') {
     return <Navigate to="/emergency" replace />;
   }
   if (role === 'LOGISTICS_OPERATOR') {
@@ -31,7 +33,7 @@ const RoleBasedRedirect: React.FC = () => {
   if (role === 'DRIVER') {
     return <Navigate to="/driver" replace />;
   }
-  return <Navigate to="/logistics" replace />;
+  return <Navigate to="/profile" replace />;
 };
 
 export const AppRoutes: React.FC = () => {
@@ -56,33 +58,33 @@ export const AppRoutes: React.FC = () => {
 
       {/* Role-Based Dashboard Routes */}
       <Route
-        path="/admin"
+        path="/admin/*"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN']}>
-            <DashboardPage />
+          <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+            <AdminRoutes />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/logistics"
+        path="/logistics/*"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'LOGISTICS_OPERATOR']}>
-            <DashboardPage />
+          <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN', 'LOGISTICS_OPERATOR']}>
+            <LogisticsRoutes />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/emergency"
+        path="/emergency/*"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'EMERGENCY_OPERATOR']}>
-            <DashboardPage />
+          <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN', 'EMERGENCY_OPERATOR', 'DISTRICT_AUTHORITY']}>
+            <EmergencyRoutes />
           </ProtectedRoute>
         }
       />
       <Route
         path="/field"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'FIELD_OFFICER']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN', 'FIELD_OFFICER']}>
             <DashboardPage />
           </ProtectedRoute>
         }
@@ -90,7 +92,7 @@ export const AppRoutes: React.FC = () => {
       <Route
         path="/driver"
         element={
-          <ProtectedRoute allowedRoles={['ADMIN', 'DRIVER']}>
+          <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN', 'DRIVER']}>
             <DashboardPage />
           </ProtectedRoute>
         }

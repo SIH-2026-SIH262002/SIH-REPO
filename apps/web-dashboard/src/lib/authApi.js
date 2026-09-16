@@ -71,7 +71,8 @@ export async function logoutApi() {
                 body: JSON.stringify({ sessionId })
             });
         } catch {
-            // best-effort logout call; ignore network/API errors
+            // Best-effort session revocation -- log out locally regardless of network/API errors
+
         }
     }
     getAuthStorage().clear();

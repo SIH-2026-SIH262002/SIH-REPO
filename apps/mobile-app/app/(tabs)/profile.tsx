@@ -62,7 +62,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/(tabs)');
+            router.replace('/(auth)/login');
           },
         },
       ]

@@ -58,6 +58,16 @@ class SqliteStorageAdapter {
         };
     }
 
+    async setActive(userId, isActive) {
+        const result = await db.update(users)
+            .set({ is_active: isActive, updated_at: new Date() })
+            .where(eq(users.id, userId))
+            .returning({ updatedId: users.id });
+
+        if (result.length === 0) throw new Error('User not found');
+        return true;
+    }
+
     async updatePassword(userId, newPasswordHash) {
         const result = await db.update(users)
             .set({ password_hash: newPasswordHash, updated_at: new Date() })

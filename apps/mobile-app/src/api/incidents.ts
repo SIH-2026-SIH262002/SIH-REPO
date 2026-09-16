@@ -59,6 +59,10 @@ export const incidentsApi = {
       formData.append('description', incident.description || '');
       formData.append('lat', String(incident.lat));
       formData.append('lon', String(incident.lon));
+      if (incident.timestamp) {
+        formData.append('captured_at', incident.timestamp);
+      }
+
 
       if (incident.photo_uri) {
         const filename = incident.photo_uri.split('/').pop() || 'photo.jpg';

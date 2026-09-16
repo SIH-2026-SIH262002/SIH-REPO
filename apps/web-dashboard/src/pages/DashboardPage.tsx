@@ -14,72 +14,81 @@ import { NotificationsOutboxView } from '../components/views/NotificationsOutbox
 import { SettingsView } from '../components/views/SettingsView';
 
 // Role Specific Dashboard Views
-import { AdminDashboardView } from '../components/dashboard/roles/AdminDashboardView';
-import { LogisticsOperatorView } from '../components/dashboard/roles/LogisticsOperatorView';
-import { EmergencyOperatorView } from '../components/dashboard/roles/EmergencyOperatorView';
+// Note: ADMIN and EMERGENCY_OPERATOR no longer render views here.
+// Admin Console lives at /admin/* (routes/AdminRoutes.tsx).
+// Emergency Operator Command Console lives at /emergency/* (routes/EmergencyRoutes.tsx).
+// Logistics Operator lives at /logistics/* (routes/LogisticsRoutes.tsx).
 import { FieldOfficerDashboardView } from '../components/dashboard/roles/FieldOfficerDashboardView';
 import { DriverDashboardView } from '../components/dashboard/roles/DriverDashboardView';
-
-// Operational Intelligence Components for Logistics Operator Command Center
-import { OperationalToolbar } from '../components/dashboard/OperationalToolbar';
-import { SupplyGapIntelligencePanel } from '../components/dashboard/SupplyGapIntelligencePanel';
-import { AIReasoningPanel } from '../components/dashboard/AIReasoningPanel';
-import { RecoveryPredictionCard } from '../components/dashboard/RecoveryPredictionCard';
 
 import { apiService } from '../services/apiService';
 import { voiceService } from '../services/voiceService';
 import { exportUtils } from '../utils/exportUtils';
 import { FileText, Volume2, Radio } from 'lucide-react';
-import { MOCK_VEHICLES } from '../data/mockData';
+import { Navigate } from 'react-router-dom';
 import { UserRole } from '../types/auth';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
+
+  // If user is LOGISTICS_OPERATOR, redirect to dedicated /logistics command console
+  if (user?.role === 'LOGISTICS_OPERATOR') {
+    return <Navigate to="/logistics" replace />;
+  }
+
+  // If user is EMERGENCY_OPERATOR, redirect to dedicated /emergency command console
+  if (user?.role === 'EMERGENCY_OPERATOR') {
+    return <Navigate to="/emergency" replace />;
+  }
+
   const [activeTab, setActiveTab] = useState('dashboard');
   const [lang, setLang] = useState('EN');
   const [voiceEnabled, setVoiceEnabled] = useState(true);
 
   // Authoritative Role from Backend Identity Context
-  const activeRole: UserRole = user?.role || 'LOGISTICS_OPERATOR';
+  const activeRole: UserRole = user?.role || 'EMERGENCY_OPERATOR';
 
   // Live WebSocket Connection
   const { isConnected, lastEvent } = useWebSocket();
 
   // Sensors & Vehicles Data State
-  const [sensors, setSensors] = useState<MapSensorNode[]>([
-    { node_key: 'GUWAHATI', name: 'Guwahati', district: 'Kamrup Metro', lat: 26.14, lon: 91.73, risk_score: 12, category: 'LOW' },
-    { node_key: 'SHILLONG', name: 'Shillong', district: 'East Khasi Hills', lat: 25.57, lon: 91.88, risk_score: 22, category: 'LOW' },
-    { node_key: 'SILCHAR', name: 'Silchar', district: 'Cachar', lat: 24.83, lon: 92.77, risk_score: 78, category: 'SEVERE', soil_moisture_pct: 88, rainfall_mm_last_24h: 120, vibration_intensity: 4.5, slope_angle_deg: 32 },
-    { node_key: 'IMPHAL', name: 'Imphal', district: 'Imphal West', lat: 24.81, lon: 93.93, risk_score: 35, category: 'MODERATE' },
-    { node_key: 'KOHIMA', name: 'Kohima', district: 'Kohima', lat: 25.67, lon: 94.1, risk_score: 42, category: 'MODERATE' },
-    { node_key: 'AIZAWL', name: 'Aizawl', district: 'Aizawl', lat: 23.73, lon: 92.71, risk_score: 55, category: 'HIGH' },
-    { node_key: 'AGARTALA', name: 'Agartala', district: 'West Tripura', lat: 23.83, lon: 91.28, risk_score: 18, category: 'LOW' },
-    { node_key: 'ITANAGAR', name: 'Itanagar', district: 'Papum Pare', lat: 27.08, lon: 93.6, risk_score: 48, category: 'MODERATE' },
-    { node_key: 'GANGTOK', name: 'Gangtok', district: 'East Sikkim', lat: 27.33, lon: 88.61, risk_score: 62, category: 'HIGH' },
-  ]);
-
-  const [vehicles, setVehicles] = useState<MapVehicle[]>(
-    MOCK_VEHICLES.map((v) => ({
-      id: v.id,
-      code: v.code,
-      driver: v.driverName,
-      status: v.status as any,
-      location: { lat: v.location.lat, lng: v.location.lng },
-      origin: v.origin,
-      destination: v.destination,
-      cargo: v.cargoDescription,
-    }))
-  );
-
+  const [sensors, setSensors] = useState<MapSensorNode[]>([]);
+  const [vehicles, setVehicles] = useState<MapVehicle[]>([]);
   const [selectedVehicle, setSelectedVehicle] = useState<MapVehicle | null>(null);
 
   // Initial REST API fetch
   useEffect(() => {
     const initFetch = async () => {
       try {
-        const rawSensors = await apiService.getSensors();
-        if (Array.isArray(rawSensors) && rawSensors.length > 0) {
-          setSensors(rawSensors);
+        const [rawSensors, rawVehicles] = await Promise.allSettled([
+          apiService.getSensors(),
+          apiService.getVehicles(),
+        ]);
+        if (rawSensors.status === 'fulfilled' && Array.isArray(rawSensors.value)) {
+          setSensors(rawSensors.value);
+        }
+        if (rawVehicles.status === 'fulfilled' && Array.isArray(rawVehicles.value)) {
+          setVehicles(
+            rawVehicles.value.map((v: any) => ({
+              id: String(v.id || v.code),
+              code: v.code || v.id,
+              driver: v.driver || v.driver_name || 'Driver',
+              phone: v.phone || v.driver_phone || '+91-99887-12345',
+              status: v.status as any,
+              location: { lat: v.lat || 26.15, lng: v.lon || 92.93 },
+              origin: v.origin_name || v.origin || 'Guwahati',
+              destination: v.destination_name || v.destination || 'Silchar',
+              cargo: v.cargo || v.cargo_type || 'Essential Supplies',
+              speed_kmh: Number(v.speed_kmph ?? v.speed_kmh ?? v.speed ?? 45),
+              eta: v.eta_formatted ?? (typeof v.eta === 'string' ? v.eta : undefined),
+              eta_minutes: v.eta_minutes,
+              remaining_distance_km: v.remaining_distance_km,
+              route_label: v.route_label,
+              route_path_names: v.route_path_names,
+              route_coordinates: v.active_route_coordinates,
+              current_segment: v.current_segment,
+            }))
+          );
         }
       } catch (err) {
         console.warn('Backend REST fetch offline, operating in simulated live mode');
@@ -97,6 +106,44 @@ export const DashboardPage: React.FC = () => {
       setSensors((prev) =>
         prev.map((s) => (s.node_key.toUpperCase() === updated.node_key.toUpperCase() ? { ...s, ...updated } : s))
       );
+    }
+
+    if (lastEvent.kind === 'vehicle_update' && lastEvent.data) {
+      const updated = lastEvent.data;
+      const uid = String(updated.id || updated.code);
+      setVehicles((prev) =>
+        prev.map((v) =>
+          String(v.id || v.code) === uid
+            ? {
+                ...v,
+                location: { lat: updated.lat, lng: updated.lon },
+                speed_kmh: updated.speed_kmph ?? updated.speed_kmh,
+                eta: updated.eta_formatted ?? updated.eta,
+                eta_minutes: updated.eta_minutes,
+                remaining_distance_km: updated.remaining_distance_km,
+                route_label: updated.route_label,
+                route_path_names: updated.route_path_names,
+                route_coordinates: updated.active_route_coordinates,
+                current_segment: updated.current_segment,
+              }
+            : v
+        )
+      );
+      setSelectedVehicle((prev) => {
+        if (!prev || String(prev.id) !== uid) return prev;
+        return {
+          ...prev,
+          location: { lat: updated.lat, lng: updated.lon },
+          speed_kmh: updated.speed_kmph ?? updated.speed_kmh,
+          eta: updated.eta_formatted ?? updated.eta,
+          eta_minutes: updated.eta_minutes,
+          remaining_distance_km: updated.remaining_distance_km,
+          route_label: updated.route_label,
+          route_path_names: updated.route_path_names,
+          route_coordinates: updated.active_route_coordinates,
+          current_segment: updated.current_segment,
+        };
+      });
     }
 
     if (lastEvent.kind === 'alert' && lastEvent.data) {
@@ -159,27 +206,6 @@ export const DashboardPage: React.FC = () => {
         <main className="flex-1 overflow-y-auto p-6 space-y-6">
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              {/* Authoritative Role Dashboard View */}
-              {activeRole === 'ADMIN' && <AdminDashboardView />}
-
-              {activeRole === 'LOGISTICS_OPERATOR' && (
-                <div className="space-y-6">
-                  {/* Logistics Operational Command Center Workflow */}
-                  <OperationalToolbar />
-                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
-                      <LogisticsOperatorView />
-                    </div>
-                    <div className="space-y-6">
-                      <SupplyGapIntelligencePanel />
-                      <AIReasoningPanel />
-                      <RecoveryPredictionCard />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeRole === 'EMERGENCY_OPERATOR' && <EmergencyOperatorView />}
               {activeRole === 'FIELD_OFFICER' && <FieldOfficerDashboardView />}
               {activeRole === 'DRIVER' && <DriverDashboardView />}
 
@@ -212,7 +238,7 @@ export const DashboardPage: React.FC = () => {
           {activeTab === 'risk' && <MLRiskPlaygroundView />}
           {activeTab === 'sos' && <EmergencySOSView />}
           {activeTab === 'field' && <FieldView />}
-          {activeTab === 'vehicles' && <VehiclesView />}
+          {activeTab === 'vehicles' && <VehiclesView vehicles={vehicles} onSelectVehicle={setSelectedVehicle} />}
           {activeTab === 'shipments' && <ShipmentsView />}
           {activeTab === 'notifications' && <NotificationsOutboxView />}
           {activeTab === 'settings' && <SettingsView />}

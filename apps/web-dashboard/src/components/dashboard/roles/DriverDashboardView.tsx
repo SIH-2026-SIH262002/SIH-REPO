@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Compass, AlertTriangle, Radio, ShieldAlert, CheckCircle2, MapPin, Truck, Navigation, Globe } from 'lucide-react';
 import { apiService } from '../../../services/apiService';
+import { useTranslation } from 'react-i18next';
 
 export const DriverDashboardView: React.FC = () => {
+  const { t, i18n } = useTranslation();
+
   // Transit Status State
   const [transitState, setTransitState] = useState<'PICKED_UP' | 'IN_TRANSIT' | 'DELAYED_LANDSLIDE' | 'ARRIVED_DESTINATION'>('IN_TRANSIT');
 
@@ -72,21 +75,28 @@ export const DriverDashboardView: React.FC = () => {
         {/* Multilingual Driver Warning Language Toggle */}
         <div className="flex items-center space-x-2 bg-slate-950 border border-slate-800 p-1.5 rounded-xl">
           <Globe className="w-4 h-4 text-emerald-400 ml-1" />
-          {(['AS', 'BN', 'HI', 'MN', 'MZ', 'EN'] as const).map((l) => (
-            <button
-              key={l}
-              onClick={() => setDriverLang(l as any)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
-                driverLang === l
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              {l === 'AS' ? 'অসমীয়া' : l === 'BN' ? 'বাংলা' : l === 'HI' ? 'हिंदी' : l === 'MN' ? 'ꯃꯤꯇꯩ' : l === 'MZ' ? 'Mizo' : 'EN'}
-            </button>
-          ))}
+          {(['as', 'bn', 'hi', 'mn', 'mz', 'en'] as const).map((l) => {
+            const isCurrent = (i18n.language || 'en').toLowerCase().startsWith(l);
+            return (
+              <button
+                key={l}
+                onClick={() => {
+                  setDriverLang(l.toUpperCase() as any);
+                  i18n.changeLanguage(l);
+                }}
+                className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
+                  isCurrent
+                    ? 'bg-emerald-600 text-white shadow-sm'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {l === 'as' ? 'অসমীয়া' : l === 'bn' ? 'বাংলা' : l === 'hi' ? 'हिंदी' : l === 'mn' ? 'ꯃꯩꯇꯩ' : l === 'mz' ? 'Mizo' : 'EN'}
+              </button>
+            );
+          })}
         </div>
       </div>
+
 
       {/* Multilingual Active Driver Warning Banner */}
       {warningText && (

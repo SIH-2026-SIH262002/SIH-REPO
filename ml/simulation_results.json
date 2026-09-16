@@ -1,0 +1,179 @@
+{
+  "model_name": "XGBoost + LightGBM Ensemble",
+  "metrics": {
+    "mae": 1.457,
+    "r2": 0.974,
+    "roc_auc": 0.933,
+    "accuracy": 0.8579
+  },
+  "scenarios": [
+    {
+      "name": "Dry-Season Baseline",
+      "location": "Kohima, Nagaland (representative)",
+      "narrative": "Typical December-January conditions: little recent rain, dry compact soil, stable vegetated slope.",
+      "reading": {
+        "rainfall_mm_last_24h": 0.0,
+        "rainfall_mm_last_72h": 2.5,
+        "days_since_last_rainfall": 18,
+        "temperature_c": 14.5,
+        "humidity_pct": 48.0,
+        "soil_moisture_pct": 18.0,
+        "soil_porosity_index": 0.32,
+        "vibration_intensity": 0.4,
+        "slope_angle_deg": 22.0,
+        "vegetation_cover_pct": 68.0,
+        "distance_to_stream_km": 3.1,
+        "historical_landslide_count": 0,
+        "elevation_m": 1420.0,
+        "soil_type": "Rocky/Compact"
+      },
+      "prediction": {
+        "risk_score": 6.9,
+        "occurrence_probability": 0.002,
+        "category": "LOW",
+        "xgboost_risk_score": 6.6,
+        "lightgbm_risk_score": 7.1
+      }
+    },
+    {
+      "name": "Pre-Monsoon Moderate Rain",
+      "location": "Kamrup Metro, Assam (representative)",
+      "narrative": "Early monsoon onset: moderate rain over the last few days, soil starting to saturate, moderate slope.",
+      "reading": {
+        "rainfall_mm_last_24h": 18.0,
+        "rainfall_mm_last_72h": 45.0,
+        "days_since_last_rainfall": 0,
+        "temperature_c": 26.0,
+        "humidity_pct": 78.0,
+        "soil_moisture_pct": 48.0,
+        "soil_porosity_index": 0.45,
+        "vibration_intensity": 1.6,
+        "slope_angle_deg": 28.0,
+        "vegetation_cover_pct": 45.0,
+        "distance_to_stream_km": 1.4,
+        "historical_landslide_count": 2,
+        "elevation_m": 640.0,
+        "soil_type": "Loamy"
+      },
+      "prediction": {
+        "risk_score": 16.4,
+        "occurrence_probability": 0.022,
+        "category": "LOW",
+        "xgboost_risk_score": 16.3,
+        "lightgbm_risk_score": 16.5
+      }
+    },
+    {
+      "name": "Monsoon Storm Event",
+      "location": "Jowai, West Jaintia Hills (representative)",
+      "narrative": "Active monsoon storm: heavy 24h/72h rainfall, saturated soil, steep slope on loose debris.",
+      "reading": {
+        "rainfall_mm_last_24h": 95.0,
+        "rainfall_mm_last_72h": 165.0,
+        "days_since_last_rainfall": 0,
+        "temperature_c": 21.0,
+        "humidity_pct": 96.0,
+        "soil_moisture_pct": 82.0,
+        "soil_porosity_index": 0.58,
+        "vibration_intensity": 3.2,
+        "slope_angle_deg": 41.0,
+        "vegetation_cover_pct": 30.0,
+        "distance_to_stream_km": 0.6,
+        "historical_landslide_count": 5,
+        "elevation_m": 1290.0,
+        "soil_type": "Loose Debris/Scree"
+      },
+      "prediction": {
+        "risk_score": 86.1,
+        "occurrence_probability": 0.999,
+        "category": "SEVERE",
+        "xgboost_risk_score": 85.6,
+        "lightgbm_risk_score": 86.6
+      }
+    },
+    {
+      "name": "Extreme Landslide-Triggering Event",
+      "location": "Nongpoh, Ri-Bhoi (representative -- matches the app's own demo hazard corridor)",
+      "narrative": "Worst-case cloudburst on an already-saturated, steep, loose slope with a history of repeated slides -- the scenario the whole alert pipeline exists to catch.",
+      "reading": {
+        "rainfall_mm_last_24h": 145.0,
+        "rainfall_mm_last_72h": 230.0,
+        "days_since_last_rainfall": 0,
+        "temperature_c": 19.5,
+        "humidity_pct": 99.0,
+        "soil_moisture_pct": 97.0,
+        "soil_porosity_index": 0.62,
+        "vibration_intensity": 4.6,
+        "slope_angle_deg": 52.0,
+        "vegetation_cover_pct": 18.0,
+        "distance_to_stream_km": 0.2,
+        "historical_landslide_count": 9,
+        "elevation_m": 980.0,
+        "soil_type": "Loose Debris/Scree"
+      },
+      "prediction": {
+        "risk_score": 90.1,
+        "occurrence_probability": 1.0,
+        "category": "SEVERE",
+        "xgboost_risk_score": 90.9,
+        "lightgbm_risk_score": 89.3
+      }
+    },
+    {
+      "name": "Post-Storm Recovery (Transitional)",
+      "location": "Dima Hasao, Assam (representative)",
+      "narrative": "Rain has stopped for two days but the slope is still draining -- soil moisture and risk are elevated but falling.",
+      "reading": {
+        "rainfall_mm_last_24h": 3.0,
+        "rainfall_mm_last_72h": 58.0,
+        "days_since_last_rainfall": 2,
+        "temperature_c": 22.0,
+        "humidity_pct": 84.0,
+        "soil_moisture_pct": 63.0,
+        "soil_porosity_index": 0.5,
+        "vibration_intensity": 1.9,
+        "slope_angle_deg": 34.0,
+        "vegetation_cover_pct": 36.0,
+        "distance_to_stream_km": 0.9,
+        "historical_landslide_count": 4,
+        "elevation_m": 810.0,
+        "soil_type": "Clayey"
+      },
+      "prediction": {
+        "risk_score": 22.7,
+        "occurrence_probability": 0.175,
+        "category": "LOW",
+        "xgboost_risk_score": 23.1,
+        "lightgbm_risk_score": 22.3
+      }
+    },
+    {
+      "name": "Steep Slope, Dry Ground (Slope-Dominant Edge Case)",
+      "location": "Synthetic edge case",
+      "narrative": "Isolates slope/vibration risk from moisture risk: a very steep slope with essentially no rain, to check the model doesn't over-weight slope alone.",
+      "reading": {
+        "rainfall_mm_last_24h": 0.0,
+        "rainfall_mm_last_72h": 1.0,
+        "days_since_last_rainfall": 25,
+        "temperature_c": 24.0,
+        "humidity_pct": 55.0,
+        "soil_moisture_pct": 15.0,
+        "soil_porosity_index": 0.3,
+        "vibration_intensity": 0.6,
+        "slope_angle_deg": 55.0,
+        "vegetation_cover_pct": 60.0,
+        "distance_to_stream_km": 4.0,
+        "historical_landslide_count": 0,
+        "elevation_m": 1750.0,
+        "soil_type": "Sandy-Loam"
+      },
+      "prediction": {
+        "risk_score": 11.2,
+        "occurrence_probability": 0.005,
+        "category": "LOW",
+        "xgboost_risk_score": 11.3,
+        "lightgbm_risk_score": 11.1
+      }
+    }
+  ]
+}

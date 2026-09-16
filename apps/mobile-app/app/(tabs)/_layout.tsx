@@ -150,6 +150,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
+        name="assistance"
+        options={{
+          title: 'Assistance',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="shield-checkmark-outline" size={size - 2} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: t('profile_tab', 'Profile'),

@@ -23,6 +23,7 @@ import { IncidentReport } from '../../src/types';
 import { Spacing, BorderRadius } from '../../src/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { OfflineQueueBanner } from '../../src/components/OfflineQueueBanner';
+import { PhotoWatermark } from '../../src/components/PhotoWatermark';
 
 export default function IncidentsScreen() {
   const { user } = useAuth();
@@ -33,7 +34,13 @@ export default function IncidentsScreen() {
   const [incidentType, setIncidentType] = useState<'landslide' | 'flood' | 'road_blocked' | 'vibration' | 'other'>('landslide');
   const [description, setDescription] = useState('');
   const [phone, setPhone] = useState(user?.phone || '+919876543210');
+
+  // photoUri is the final image used for preview + upload: the raw camera/gallery
+  // capture until watermarking finishes, then swapped for the geotagged version.
   const [photoUri, setPhotoUri] = useState<string | null>(null);
+  const [capturedAt, setCapturedAt] = useState<string | null>(null);
+  const [pendingWatermark, setPendingWatermark] = useState<{ uri: string; lat: number; lon: number; timestamp: string } | null>(null);
+  const [watermarking, setWatermarking] = useState(false);
 
   const [lat, setLat] = useState<number>(25.5788);
   const [lon, setLon] = useState<number>(91.8933);
@@ -88,7 +95,7 @@ export default function IncidentsScreen() {
       });
 
       if (!result.canceled && result.assets?.[0]?.uri) {
-        setPhotoUri(result.assets[0].uri);
+        startWatermark(result.assets[0].uri);
       }
     } catch (e) {
       console.warn('Error picking image:', e);
@@ -109,11 +116,50 @@ export default function IncidentsScreen() {
       });
 
       if (!result.canceled && result.assets?.[0]?.uri) {
-        setPhotoUri(result.assets[0].uri);
+        // Re-capture GPS at the moment of the photo (not whatever was fetched
+        // on screen mount) so the burned-in coordinates match this shot.
+        let captureLat = lat;
+        let captureLon = lon;
+        try {
+          const pos = await locationService.getCurrentLocation();
+          captureLat = pos.lat;
+          captureLon = pos.lon;
+          setLat(pos.lat);
+          setLon(pos.lon);
+        } catch {
+          // Fall back to the last-known GPS reading already on screen.
+        }
+        startWatermark(result.assets[0].uri, captureLat, captureLon);
       }
     } catch (e) {
       console.warn('Error taking photo:', e);
     }
+  };
+
+  // Burns GPS + timestamp onto the photo (below the image) before it's ever
+  // shown in the preview or uploaded, so the visible proof and the uploaded
+  // file are always the same watermarked image.
+  const startWatermark = (uri: string, captureLat: number = lat, captureLon: number = lon) => {
+    const timestamp = new Date().toISOString();
+    setCapturedAt(timestamp);
+    setPhotoUri(null);
+    setWatermarking(true);
+    setPendingWatermark({ uri, lat: captureLat, lon: captureLon, timestamp });
+  };
+
+  const handleWatermarkDone = (watermarkedUri: string) => {
+    setPhotoUri(watermarkedUri);
+    setPendingWatermark(null);
+    setWatermarking(false);
+  };
+
+  const handleWatermarkError = (e: unknown) => {
+    console.warn('Watermarking failed, using original photo without GPS/time overlay:', e);
+    if (pendingWatermark) {
+      setPhotoUri(pendingWatermark.uri);
+    }
+    setPendingWatermark(null);
+    setWatermarking(false);
   };
 
   const handleSubmit = async () => {
@@ -133,7 +179,10 @@ export default function IncidentsScreen() {
       lat,
       lon,
       photo_uri: photoUri,
-      timestamp: new Date().toISOString(),
+      // Device capture time burned into the photo watermark (falls back to
+      // submit time if no photo was attached, so text-only reports still
+      // carry an accurate timestamp).
+      timestamp: capturedAt || new Date().toISOString(),
     };
 
     try {
@@ -143,6 +192,7 @@ export default function IncidentsScreen() {
       // Reset form
       setDescription('');
       setPhotoUri(null);
+      setCapturedAt(null);
     } catch (e: any) {
       console.warn('Incident submit error, queuing offline:', e);
       await enqueueReport(reportPayload);
@@ -152,6 +202,7 @@ export default function IncidentsScreen() {
       });
       setDescription('');
       setPhotoUri(null);
+      setCapturedAt(null);
     } finally {
       setSubmitting(false);
     }
@@ -250,10 +301,34 @@ export default function IncidentsScreen() {
 
           {/* Photo Attachment Bar */}
           <Text style={[styles.fieldLabel, { color: colors.textMuted }]}>PHOTO EVIDENCE (OPTIONAL)</Text>
-          {photoUri ? (
+          {pendingWatermark && (
+            <PhotoWatermark
+              photoUri={pendingWatermark.uri}
+              lat={pendingWatermark.lat}
+              lon={pendingWatermark.lon}
+              timestampIso={pendingWatermark.timestamp}
+              locationLabel={user?.district}
+              onDone={handleWatermarkDone}
+              onError={handleWatermarkError}
+            />
+          )}
+          {watermarking ? (
+            <View style={[styles.imagePreviewContainer, styles.watermarkingBox, { borderColor: colors.cardBorder }]}>
+              <ActivityIndicator size="small" color={colors.primary} />
+              <Text style={[styles.watermarkingText, { color: colors.textMuted }]}>
+                Stamping GPS &amp; timestamp onto photo…
+              </Text>
+            </View>
+          ) : photoUri ? (
             <View style={styles.imagePreviewContainer}>
               <Image source={{ uri: photoUri }} style={styles.imagePreview} />
-              <TouchableOpacity style={styles.removeImageBtn} onPress={() => setPhotoUri(null)}>
+              <TouchableOpacity
+                style={styles.removeImageBtn}
+                onPress={() => {
+                  setPhotoUri(null);
+                  setCapturedAt(null);
+                }}
+              >
                 <Ionicons name="close" size={16} color="#fff" />
               </TouchableOpacity>
             </View>
@@ -278,9 +353,9 @@ export default function IncidentsScreen() {
 
           {/* Submit Button */}
           <TouchableOpacity
-            style={[styles.submitBtn, { backgroundColor: colors.primary }, submitting && styles.btnDisabled]}
+            style={[styles.submitBtn, { backgroundColor: colors.primary }, (submitting || watermarking) && styles.btnDisabled]}
             onPress={handleSubmit}
-            disabled={submitting}
+            disabled={submitting || watermarking}
             activeOpacity={0.8}
           >
             {submitting ? (
@@ -431,6 +506,17 @@ const styles = StyleSheet.create({
   imagePreview: {
     width: '100%',
     height: '100%',
+  },
+  watermarkingBox: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderStyle: 'dashed',
+    gap: 6,
+  },
+  watermarkingText: {
+    fontSize: 12,
+    fontWeight: '600',
   },
   removeImageBtn: {
     position: 'absolute',
